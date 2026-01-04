@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Configuración del segmento de ruta para Next.js
+export const runtime = 'nodejs'; // Especifica el runtime para Vercel
+export const dynamic = 'force-dynamic'; // Fuerza el modo dinámico para evitar optimizaciones estáticas
+
 // Prompt del sistema para el asistente de personas mayores
 const SYSTEM_PROMPT = `Eres un asistente virtual amable y paciente, diseñado especialmente para ayudar a personas mayores.
 
@@ -29,6 +33,14 @@ Recuerda: tu objetivo es hacer que la persona se sienta cómoda, escuchada y aco
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+}
+
+// Manejar métodos no permitidos
+export async function GET() {
+  return NextResponse.json(
+    { error: "Método no permitido. Use POST." },
+    { status: 405 }
+  );
 }
 
 export async function POST(request: NextRequest) {
