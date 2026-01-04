@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+import { useAuth } from "@/lib/auth-context";
 
 // Tipo para los mensajes del chat
 interface Message {
@@ -14,6 +15,7 @@ interface Message {
 
 export default function ChatbotPage() {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -28,6 +30,14 @@ export default function ChatbotPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  // Verificar autenticación y redirigir si no está autenticado
+  useEffect(() => {
+    if (!authLoading && !user) {
+      const currentPath = window.location.pathname;
+      router.push(`/auth/login?redirect=${encodeURIComponent(currentPath)}`);
+    }
+  }, [user, authLoading, router]);
+
   // Scroll automático al final de los mensajes
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -39,14 +49,10 @@ export default function ChatbotPage() {
 
   // Obtener información del usuario
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserEmail(user.email ?? null);
-      }
-    };
-    getUser();
-  }, []);
+    if (user) {
+      setUserEmail(user.email ?? null);
+    }
+  }, [user]);
 
   // Cerrar sesión
   const handleLogout = async () => {
@@ -120,6 +126,27 @@ export default function ChatbotPage() {
       handleSend();
     }
   };
+
+  // Mostrar loading mientras se verifica la autenticación
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-bg-secondary)' }}>
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-full mx-auto mb-6 flex items-center justify-center text-4xl animate-pulse" style={{ background: 'var(--color-primary)' }}>
+            ⏳
+          </div>
+          <p className="text-lg" style={{ color: 'var(--color-text-secondary)' }}>
+            Verificando sesión...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si no hay usuario, no mostrar nada (ya se está redirigiendo)
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--color-bg-secondary)' }}>

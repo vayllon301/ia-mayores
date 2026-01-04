@@ -5,7 +5,8 @@ Una aplicación web accesible diseñada especialmente para ayudar a personas may
 ## 🎯 Características
 
 - **Landing Page**: Presentación clara del producto con diseño accesible
-- **Autenticación**: Registro e inicio de sesión con Supabase
+- **Autenticación**: Registro e inicio de sesión con email y contraseña
+- **Google OAuth**: Inicia sesión con tu cuenta de Google en un clic
 - **Chatbot IA**: Interfaz de chat amigable con un asistente virtual
 - **Accesibilidad**: Tipografía grande, alto contraste, navegación simple
 
@@ -45,8 +46,9 @@ Una aplicación web accesible diseñada especialmente para ayudar a personas may
 4. **Configura Supabase**
    
    - Crea un proyecto en [Supabase](https://supabase.com)
-   - Habilita la autenticación por email en Authentication > Providers
-   - Copia la URL y la Anon Key desde Settings > API
+   - En **Authentication > Providers**, habilita **Email**
+   - En **Settings > API**, copia la URL y la Anon Key
+   - (Opcional) Para Google OAuth, consulta [GOOGLE_OAUTH_SETUP.md](./GOOGLE_OAUTH_SETUP.md)
 
 5. **Inicia el servidor de desarrollo**
    ```bash

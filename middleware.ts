@@ -1,36 +1,22 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 
-// Rutas que requieren autenticación
+// Rutas que requieren autenticación (se verifican en el cliente)
 const protectedRoutes = ['/chatbot']
 
-// Rutas de autenticación (redirigir si ya está logueado)
+// Rutas de autenticación
 const authRoutes = ['/auth/login', '/auth/register']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
-  // Obtener el token de la cookie de Supabase
-  const supabaseToken = request.cookies.get('sb-access-token')?.value
-  const refreshToken = request.cookies.get('sb-refresh-token')?.value
+  // Nota: Supabase guarda la sesión en localStorage en el cliente,
+  // no en cookies, por lo que el middleware del servidor no puede
+  // verificar la autenticación directamente. La verificación real
+  // se hace en el cliente en las páginas protegidas.
   
-  // Verificar si el usuario está autenticado
-  const isAuthenticated = !!supabaseToken || !!refreshToken
-  
-  // Proteger rutas del chatbot
-  if (protectedRoutes.some(route => pathname.startsWith(route))) {
-    if (!isAuthenticated) {
-      const loginUrl = new URL('/auth/login', request.url)
-      loginUrl.searchParams.set('redirect', pathname)
-      return NextResponse.redirect(loginUrl)
-    }
-  }
-  
-  // Redirigir usuarios autenticados fuera de páginas de auth
-  if (authRoutes.includes(pathname) && isAuthenticated) {
-    return NextResponse.redirect(new URL('/chatbot', request.url))
-  }
+  // Permitir que todas las rutas pasen - la verificación se hace en el cliente
+  // Esto evita redirecciones innecesarias cuando el usuario ya está autenticado
   
   return NextResponse.next()
 }
