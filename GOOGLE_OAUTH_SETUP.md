@@ -89,10 +89,13 @@ No necesitas agregar nada más - Supabase maneja todo por ti.
 Para producción, necesitarás agregar estas URLs en:
 
 ### Google Cloud Console
+
 - `https://tu-dominio.com/auth/callback`
 
 ### Supabase
+
 En **Authentication > URL Configuration**:
+
 - **Site URL**: `http://localhost:3000` (desarrollo) o `https://tu-dominio.com` (producción)
 - **Redirect URLs**: Añade `http://localhost:3000/**` y `https://tu-dominio.com/**`
 
@@ -101,15 +104,18 @@ Asegúrate de agregar `https://` en producción.
 ## 🐛 Troubleshooting
 
 ### "No se puede conectar a Google"
+
 - Verifica que las URIs de redirección sean exactas en Google Cloud
 - Reinicia el servidor después de cambiar variables de entorno
 - Verifica que Google OAuth esté habilitado en Supabase
 
 ### "Error de autenticación"
+
 - Asegúrate de que ambas credenciales (ID y Secret) sean correctas
 - Verifica que Google+ API esté habilitada en Google Cloud Console
 
 ### "Pantalla de consentimiento"
+
 - Si aparece un mensaje de riesgo, es normal en desarrollo
 - Haz clic en **"Continuar sin dudas"** o similar
 - En producción, Google verificará tu aplicación
@@ -117,6 +123,7 @@ Asegúrate de agregar `https://` en producción.
 ## 📱 Después de la autenticación
 
 Una vez que el usuario se autentica con Google:
+
 1. Supabase crea una nueva cuenta o vincula con una existente
 2. El usuario es redirigido a `/chatbot`
 3. La sesión se mantiene automáticamente
