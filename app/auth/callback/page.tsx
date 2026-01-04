@@ -1,14 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
-export default function AuthCallbackPage() {
+// #region agent log
+// Force dynamic rendering to prevent prerendering errors
+export const dynamic = 'force-dynamic';
+// #endregion
+
+function CallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/chatbot";
   const [error, setError] = useState<string | null>(null);
+
+  // #region agent log
+  useEffect(() => {
+    fetch('http://127.0.0.1:7242/ingest/b1453c99-1cbf-43e3-aaf7-2380e5862220',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'callback/page.tsx:18',message:'CallbackContent mounted',data:{next},timestamp:Date.now(),sessionId:'debug-session',runId:'build-debug',hypothesisId:'A'})}).catch(()=>{});
+  }, [next]);
+  // #endregion
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
@@ -16,10 +27,26 @@ export default function AuthCallbackPage() {
 
     const handleAuthCallback = () => {
       try {
+        // #region agent log
+        const isBrowser = typeof window !== 'undefined';
+        fetch('http://127.0.0.1:7242/ingest/b1453c99-1cbf-43e3-aaf7-2380e5862220',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'callback/page.tsx:22',message:'handleAuthCallback entry',data:{isBrowser,hasWindow:isBrowser},timestamp:Date.now(),sessionId:'debug-session',runId:'build-debug',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        
         // Verificar si hay un error en el hash
+        if (!isBrowser) {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/b1453c99-1cbf-43e3-aaf7-2380e5862220',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'callback/page.tsx:26',message:'Not in browser, skipping hash check',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'build-debug',hypothesisId:'B'})}).catch(()=>{});
+          // #endregion
+          return;
+        }
+        
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const errorParam = hashParams.get("error");
         const errorDescription = hashParams.get("error_description");
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/b1453c99-1cbf-43e3-aaf7-2380e5862220',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'callback/page.tsx:32',message:'Hash params parsed',data:{hasError:!!errorParam,errorParam},timestamp:Date.now(),sessionId:'debug-session',runId:'build-debug',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
 
         if (errorParam) {
           console.error("Error de OAuth:", errorParam, errorDescription);
@@ -126,5 +153,24 @@ export default function AuthCallbackPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center px-6 py-12" style={{ background: 'var(--color-bg-secondary)' }}>
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-full mx-auto mb-6 flex items-center justify-center text-4xl animate-pulse" style={{ background: 'var(--color-primary)' }}>
+            ⏳
+          </div>
+          <p className="text-lg" style={{ color: 'var(--color-text-secondary)' }}>
+            Cargando...
+          </p>
+        </div>
+      </div>
+    }>
+      <CallbackContent />
+    </Suspense>
   );
 }
