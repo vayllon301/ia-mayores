@@ -59,11 +59,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar si hay una API key de OpenAI configurada
+    // Intentar conectar con el backend externo primero
+    try {
+      const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
+      const backendResponse = await fetch(`${backendUrl}/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message,
+          history,
+        }),
+        // Timeout de 30 segundos
+        signal: AbortSignal.timeout(30000),
+      });
+
+      if (backendResponse.ok) {
+        const data = await backendResponse.json();
+        return NextResponse.json({ response: data.response || data.message });
+      }
+    } catch (backendError) {
+      console.error("Backend no disponible, usando fallback:", backendError);
+      // Continuar con fallback si el backend no responde
+    }
+
+    // Fallback: Usar OpenAI si está configurado
     const openaiApiKey = process.env.OPENAI_API_KEY;
 
     if (openaiApiKey) {
-      // Usar OpenAI si está configurado
       const response = await callOpenAI(message, history, openaiApiKey);
       return NextResponse.json({ response });
     } else {

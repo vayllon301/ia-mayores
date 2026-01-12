@@ -29,6 +29,7 @@ export default function ChatbotPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const MAX_TEXTAREA_HEIGHT = 140;
 
   // Verificar autenticación y redirigir si no está autenticado
   useEffect(() => {
@@ -41,6 +42,14 @@ export default function ChatbotPage() {
   // Scroll automático al final de los mensajes
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const adjustTextareaHeight = () => {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    const newHeight = Math.min(textarea.scrollHeight, MAX_TEXTAREA_HEIGHT);
+    textarea.style.height = `${newHeight}px`;
   };
 
   useEffect(() => {
@@ -92,7 +101,7 @@ export default function ChatbotPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Error en la respuesta");
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -100,16 +109,19 @@ export default function ChatbotPage() {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.response,
+        content: data.response || data.message || "No hay respuesta del servidor",
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
+      console.error("Error al conectar con el servidor:", error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "Lo siento, ha ocurrido un error. Por favor, inténtalo de nuevo en unos momentos.",
+        content: error instanceof Error 
+          ? `Error: ${error.message}` 
+          : "Lo siento, no pude conectar con el servidor. Intenta de nuevo.",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -118,6 +130,10 @@ export default function ChatbotPage() {
       inputRef.current?.focus();
     }
   };
+
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [input]);
 
   // Manejar Enter para enviar
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -208,7 +224,7 @@ export default function ChatbotPage() {
                     </span>
                   </div>
                 )}
-                <p className="text-lg leading-relaxed whitespace-pre-wrap">
+                <p className="text-lg leading-relaxed whitespace-pre-wrap ">
                   {message.content}
                 </p>
               </div>
@@ -247,8 +263,15 @@ export default function ChatbotPage() {
         style={{ background: 'var(--color-bg-card)', borderTop: '1px solid var(--color-border)' }}
       >
         <div className="max-w-3xl mx-auto">
-          <div className="flex gap-4 items-end">
-            <div className="flex-1">
+          <div className="chat-input-wrapper">
+            <button
+              type="button"
+              className="chat-input-quick-action"
+              aria-label="Adjuntar contenido"
+            >
+              <span aria-hidden="true">+</span>
+            </button>
+            <div className="flex-1 min-w-0">
               <label htmlFor="message-input" className="sr-only">
                 Escribe tu mensaje
               </label>
@@ -259,26 +282,32 @@ export default function ChatbotPage() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Escribe tu mensaje aquí..."
-                className="input resize-none"
-                style={{ minHeight: '64px', maxHeight: '150px' }}
-                rows={2}
+                className="chat-input-textarea"
+                rows={1}
                 disabled={isLoading}
                 aria-label="Escribe tu mensaje"
               />
             </div>
             <button
+              type="button"
+              className="chat-input-icon"
+              aria-label="Mensaje de voz"
+            >
+              <span className="text-lg" aria-hidden="true">
+                🎤
+              </span>
+            </button>
+            <button
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
-              className="btn btn-primary px-8"
-              style={{ minHeight: '64px', minWidth: '120px' }}
+              className="chat-send-button"
               aria-label="Enviar mensaje"
             >
               {isLoading ? (
-                <span className="animate-pulse">⏳</span>
+                <span className="animate-pulse text-2xl">⏳</span>
               ) : (
-                <span className="flex items-center gap-2">
-                  Enviar
-                  <span className="text-xl">→</span>
+                <span className="text-2xl" aria-hidden="true">
+                  ↑
                 </span>
               )}
             </button>

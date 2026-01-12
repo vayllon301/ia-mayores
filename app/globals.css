@@ -184,7 +184,7 @@ p {
    ======================================== */
 .message-user {
   background: var(--color-primary);
-  color: white;
+  color: #e0e7ff;
   border-radius: 1.25rem 1.25rem 0.25rem 1.25rem;
 }
 
@@ -193,6 +193,106 @@ p {
   color: var(--color-text-primary);
   border-radius: 1.25rem 1.25rem 1.25rem 0.25rem;
   border: 1px solid var(--color-border);
+}
+
+.message-bot p {
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
+.message-user p {
+  color: #ffffff;
+  font-weight: 700;
+}
+.chat-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 999px;
+  background: #484a60;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.55);
+}
+
+.chat-input-quick-action,
+.chat-input-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.chat-input-quick-action:hover,
+.chat-input-icon:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.chat-send-button {
+  width: 52px;
+  min-width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: #ffffff;
+  color: var(--color-primary);
+  font-size: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 15px 30px rgba(15, 23, 42, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.chat-send-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 35px rgba(15, 23, 42, 0.45);
+}
+
+.chat-send-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.chat-input-textarea {
+  width: 100%;
+  min-height: 56px;
+  max-height: 140px;
+  border: none;
+  background: transparent;
+  color: #f8fafc;
+  font-size: 1.125rem;
+  line-height: 1.6;
+  resize: none;
+  font-weight: 500;
+}
+
+.chat-input-textarea:focus-visible {
+  outline: none;
+}
+
+.chat-input-textarea::placeholder {
+  color: rgba(248, 250, 252, 0.6);
+}
+
+.chat-input-textarea::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  background: transparent;
+}
+
+.chat-input-textarea {
+  scrollbar-width: none;
+  scrollbar-color: transparent transparent;
 }
 
 /* ========================================
