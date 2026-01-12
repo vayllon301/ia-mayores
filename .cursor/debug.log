@@ -1,0 +1,21 @@
+{"location":"callback/page.tsx:18","message":"CallbackContent mounted","data":{"next":"/chatbot"},"timestamp":1767551946124,"sessionId":"debug-session","runId":"build-debug","hypothesisId":"A"}
+{"location":"callback/page.tsx:32","message":"Hash params parsed","data":{"hasError":false,"errorParam":null},"timestamp":1767551946125,"sessionId":"debug-session","runId":"build-debug","hypothesisId":"B"}
+{"location":"callback/page.tsx:22","message":"handleAuthCallback entry","data":{"isBrowser":true,"hasWindow":true},"timestamp":1767551946124,"sessionId":"debug-session","runId":"build-debug","hypothesisId":"B"}
+{"location":"callback/page.tsx:18","message":"CallbackContent mounted","data":{"next":"/chatbot"},"timestamp":1767572001069,"sessionId":"debug-session","runId":"build-debug","hypothesisId":"A"}
+{"location":"callback/page.tsx:32","message":"Hash params parsed","data":{"hasError":false,"errorParam":null},"timestamp":1767572001070,"sessionId":"debug-session","runId":"build-debug","hypothesisId":"B"}
+{"location":"callback/page.tsx:22","message":"handleAuthCallback entry","data":{"isBrowser":true,"hasWindow":true},"timestamp":1767572001070,"sessionId":"debug-session","runId":"build-debug","hypothesisId":"B"}
+{"location":"callback/page.tsx:22","message":"handleAuthCallback entry","data":{"isBrowser":true,"hasWindow":true},"timestamp":1767605149575,"sessionId":"debug-session","runId":"build-debug","hypothesisId":"B"}
+{"location":"callback/page.tsx:18","message":"CallbackContent mounted","data":{"next":"/chatbot"},"timestamp":1767605149574,"sessionId":"debug-session","runId":"build-debug","hypothesisId":"A"}
+{"location":"callback/page.tsx:32","message":"Hash params parsed","data":{"hasError":false,"errorParam":null},"timestamp":1767605149575,"sessionId":"debug-session","runId":"build-debug","hypothesisId":"B"}
+{"location":"callback/page.tsx:18","message":"CallbackContent mounted","data":{"next":"/chatbot"},"timestamp":1767605412659,"sessionId":"debug-session","runId":"build-debug","hypothesisId":"A"}
+{"location":"callback/page.tsx:32","message":"Hash params parsed","data":{"hasError":false,"errorParam":null},"timestamp":1767605412660,"sessionId":"debug-session","runId":"build-debug","hypothesisId":"B"}
+{"location":"callback/page.tsx:18","message":"CallbackContent mounted","data":{"next":"/chatbot"},"timestamp":1767605412663,"sessionId":"debug-session","runId":"build-debug","hypothesisId":"A"}
+{"location":"callback/page.tsx:22","message":"handleAuthCallback entry","data":{"isBrowser":true,"hasWindow":true},"timestamp":1767605412664,"sessionId":"debug-session","runId":"build-debug","hypothesisId":"B"}
+{"location":"callback/page.tsx:32","message":"Hash params parsed","data":{"hasError":false,"errorParam":null},"timestamp":1767605412664,"sessionId":"debug-session","runId":"build-debug","hypothesisId":"B"}
+{"location":"callback/page.tsx:22","message":"handleAuthCallback entry","data":{"isBrowser":true,"hasWindow":true},"timestamp":1767605412660,"sessionId":"debug-session","runId":"build-debug","hypothesisId":"B"}
+{"location":"callback/page.tsx:22","message":"handleAuthCallback entry","data":{"isBrowser":true,"hasWindow":true},"timestamp":1767605703270,"sessionId":"debug-session","runId":"build-debug","hypothesisId":"B"}
+{"location":"callback/page.tsx:22","message":"handleAuthCallback entry","data":{"isBrowser":true,"hasWindow":true},"timestamp":1767605703275,"sessionId":"debug-session","runId":"build-debug","hypothesisId":"B"}
+{"location":"callback/page.tsx:18","message":"CallbackContent mounted","data":{"next":"/chatbot"},"timestamp":1767605703274,"sessionId":"debug-session","runId":"build-debug","hypothesisId":"A"}
+{"location":"callback/page.tsx:32","message":"Hash params parsed","data":{"hasError":false,"errorParam":null},"timestamp":1767605703275,"sessionId":"debug-session","runId":"build-debug","hypothesisId":"B"}
+{"location":"callback/page.tsx:18","message":"CallbackContent mounted","data":{"next":"/chatbot"},"timestamp":1767605703267,"sessionId":"debug-session","runId":"build-debug","hypothesisId":"A"}
+{"location":"callback/page.tsx:32","message":"Hash params parsed","data":{"hasError":false,"errorParam":null},"timestamp":1767605703271,"sessionId":"debug-session","runId":"build-debug","hypothesisId":"B"}
