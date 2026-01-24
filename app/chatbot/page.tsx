@@ -27,6 +27,9 @@ export default function ChatbotPage() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const MAX_TEXTAREA_HEIGHT = 140;
@@ -82,9 +85,136 @@ export default function ChatbotPage() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const messageText = input.trim();
     setInput("");
     setIsLoading(true);
 
+    await sendTextMessage(messageText);
+    setIsLoading(false);
+    inputRef.current?.focus();
+  };
+
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [input]);
+
+  // Manejar Enter para enviar
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  // Iniciar grabación de voz
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(chunks, { type: "audio/webm" });
+        await sendVoiceMessage(audioBlob);
+        
+        // Detener todos los tracks del stream
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setAudioChunks(chunks);
+      setIsRecording(true);
+    } catch (error) {
+      console.error("Error al acceder al micrófono:", error);
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: "No se pudo acceder al micrófono. Por favor, verifica los permisos.",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    }
+  };
+
+  // Detener grabación de voz
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+    }
+  };
+
+  // Enviar mensaje de voz al servidor
+  const sendVoiceMessage = async (audioBlob: Blob) => {
+    setIsLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("audio", audioBlob, "voice-message.webm");
+
+      const response = await fetch("/api/voice", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const transcribedText = data.text || data.transcription || "";
+
+      if (transcribedText) {
+        // Agregar el mensaje transcrito como mensaje del usuario con icono de micrófono
+        const userMessage: Message = {
+          id: Date.now().toString(),
+          role: "user",
+          content: `🎤 ${transcribedText}`,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, userMessage]);
+
+        // Si la API de voz también devuelve una respuesta completa, agregarla
+        if (data.response && typeof data.response === "string" && data.response.trim()) {
+          const assistantMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: "assistant",
+            content: data.response,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, assistantMessage]);
+        } else {
+          // Si no hay respuesta directa de la API de voz, enviar el texto transcrito al chat normal para obtener una respuesta del asistente
+          await sendTextMessage(transcribedText);
+        }
+      } else {
+        throw new Error("No se pudo transcribir el audio");
+      }
+    } catch (error) {
+      console.error("Error al procesar el mensaje de voz:", error);
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: error instanceof Error 
+          ? `Error: ${error.message}` 
+          : "Lo siento, no pude procesar tu mensaje de voz. Intenta de nuevo.",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Enviar mensaje de texto (extraído de handleSend para reutilizar)
+  const sendTextMessage = async (text: string) => {
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -92,7 +222,7 @@ export default function ChatbotPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          message: userMessage.content,
+          message: text,
           history: messages.map((m) => ({
             role: m.role,
             content: m.content,
@@ -125,21 +255,15 @@ export default function ChatbotPage() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-      inputRef.current?.focus();
     }
   };
 
-  useEffect(() => {
-    adjustTextareaHeight();
-  }, [input]);
-
-  // Manejar Enter para enviar
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+  // Manejar clic en el botón de voz
+  const handleVoiceClick = () => {
+    if (isRecording) {
+      stopRecording();
+    } else if (!isLoading) {
+      startRecording();
     }
   };
 
@@ -263,6 +387,20 @@ export default function ChatbotPage() {
         style={{ background: 'var(--color-bg-card)', borderTop: '1px solid var(--color-border)' }}
       >
         <div className="max-w-3xl mx-auto">
+          {/* Indicador de grabación */}
+          {isRecording && (
+            <div className="mb-3 p-3 rounded-lg flex items-center gap-3 animate-fade-in" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444' }}>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full animate-pulse" style={{ background: '#ef4444' }}></span>
+                <span className="font-semibold" style={{ color: '#ef4444' }}>
+                  Grabando...
+                </span>
+              </div>
+              <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                Haz clic en el botón de detener cuando termines
+              </span>
+            </div>
+          )}
           <div className="chat-input-wrapper">
             <button
               type="button"
@@ -290,11 +428,17 @@ export default function ChatbotPage() {
             </div>
             <button
               type="button"
-              className="chat-input-icon"
-              aria-label="Mensaje de voz"
+              onClick={handleVoiceClick}
+              disabled={isLoading}
+              className={`chat-input-icon ${isRecording ? 'recording' : ''}`}
+              aria-label={isRecording ? "Detener grabación" : "Grabar mensaje de voz"}
+              style={isRecording ? { 
+                background: '#ef4444', 
+                animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' 
+              } : {}}
             >
               <span className="text-lg" aria-hidden="true">
-                🎤
+                {isRecording ? '⏹️' : '🎤'}
               </span>
             </button>
             <button
@@ -313,7 +457,10 @@ export default function ChatbotPage() {
             </button>
           </div>
           <p className="text-center mt-3 text-base" style={{ color: 'var(--color-text-muted)' }}>
-            Pulsa Enter para enviar o usa el botón
+            {isRecording 
+              ? "Pulsa el botón de detener para enviar tu mensaje de voz" 
+              : "Pulsa Enter para enviar, usa el botón o graba un mensaje de voz"
+            }
           </p>
         </div>
       </footer>
