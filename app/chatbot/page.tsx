@@ -170,6 +170,7 @@ export default function ChatbotPage() {
 
       const data = await response.json();
       const transcribedText = data.text || data.transcription || "";
+      const chatbotResponseText = data.response || "";
 
       if (transcribedText) {
         // Agregar el mensaje transcrito como mensaje del usuario con icono de micrófono
@@ -181,17 +182,40 @@ export default function ChatbotPage() {
         };
         setMessages((prev) => [...prev, userMessage]);
 
-        // Si la API de voz también devuelve una respuesta completa, agregarla
-        if (data.response && typeof data.response === "string" && data.response.trim()) {
+        // Si la API de voz devuelve una respuesta completa, agregarla
+        if (chatbotResponseText && chatbotResponseText.trim()) {
           const assistantMessage: Message = {
             id: (Date.now() + 1).toString(),
             role: "assistant",
-            content: data.response,
+            content: `🔊 ${chatbotResponseText}`,
             timestamp: new Date(),
           };
           setMessages((prev) => [...prev, assistantMessage]);
+
+          // Play the audio response if available
+          if (data.audio && data.audioType) {
+            try {
+              // Convert base64 audio to blob
+              const audioBytes = Uint8Array.from(atob(data.audio), c => c.charCodeAt(0));
+              const audioBlob = new Blob([audioBytes], { type: data.audioType });
+              const audioUrl = URL.createObjectURL(audioBlob);
+
+              // Create and play audio element
+              const audio = new Audio(audioUrl);
+              audio.play().catch((err) => {
+                console.error("Error playing audio:", err);
+              });
+
+              // Clean up the URL after playing
+              audio.onended = () => {
+                URL.revokeObjectURL(audioUrl);
+              };
+            } catch (audioError) {
+              console.error("Error processing audio response:", audioError);
+            }
+          }
         } else {
-          // Si no hay respuesta directa de la API de voz, enviar el texto transcrito al chat normal para obtener una respuesta del asistente
+          // Si no hay respuesta directa de la API de voz, enviar el texto transcrito al chat normal
           await sendTextMessage(transcribedText);
         }
       } else {
@@ -202,8 +226,8 @@ export default function ChatbotPage() {
       const errorMessage: Message = {
         id: Date.now().toString(),
         role: "assistant",
-        content: error instanceof Error 
-          ? `Error: ${error.message}` 
+        content: error instanceof Error
+          ? `Error: ${error.message}`
           : "Lo siento, no pude procesar tu mensaje de voz. Intenta de nuevo.",
         timestamp: new Date(),
       };

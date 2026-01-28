@@ -16,13 +16,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log("Audio file received:", {
+      type: audioFile.type,
+      size: audioFile.size,
+    });
+
     // Create a new FormData to send to the voice API
     const voiceApiFormData = new FormData();
-    voiceApiFormData.append("audio", audioFile);
+    voiceApiFormData.append("audio", audioFile, "recording.webm");
 
-    // Send to the voice API
-    const voiceApiUrl = "https://menteviva-bwc9ejdthjhsfecn.swedencentral-01.azurewebsites.net/voice";
-    
+    // Use the backend URL from environment variables
+    const backendUrl = process.env.BACKEND_URL || "https://ia-mayores-backend.vercel.app";
+    const voiceApiUrl = `${backendUrl}/voice`;
+
+    console.log("Attempting to send audio to:", voiceApiUrl);
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout for voice processing
 
@@ -35,10 +43,20 @@ export async function POST(request: NextRequest) {
 
       clearTimeout(timeoutId);
 
+      console.log("Voice API response status:", voiceResponse.status);
+      console.log("Voice API response content-type:", voiceResponse.headers.get("content-type"));
+
       if (!voiceResponse.ok) {
         const errorText = await voiceResponse
           .text()
           .catch(() => "Error desconocido del API de voz");
+
+        console.error("Voice API error response:", {
+          status: voiceResponse.status,
+          statusText: voiceResponse.statusText,
+          body: errorText,
+        });
+
         return NextResponse.json(
           {
             error: `Error del API de voz: ${voiceResponse.status} ${voiceResponse.statusText}`,
@@ -48,10 +66,28 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const data = await voiceResponse.json();
+      // Get the transcribed text from headers if available
+      const transcribedText = voiceResponse.headers.get("X-Transcribed-Text") || "";
+      const chatbotResponse = voiceResponse.headers.get("X-Chatbot-Response") || "";
+
+      // Get the audio blob
+      const audioBlob = await voiceResponse.blob();
+
+      console.log("Voice API response received:", {
+        transcribedText,
+        chatbotResponse,
+        audioBlobSize: audioBlob.size,
+      });
+
+      // Convert audio blob to base64 for JSON transmission
+      const audioBuffer = await audioBlob.arrayBuffer();
+      const audioBase64 = Buffer.from(audioBuffer).toString("base64");
+
       return NextResponse.json({
-        text: data.text || data.transcription || data.message || "",
-        response: data.response || data,
+        text: transcribedText,
+        response: chatbotResponse,
+        audio: audioBase64,
+        audioType: "audio/mpeg",
       });
     } catch (fetchError) {
       clearTimeout(timeoutId);
