@@ -3,8 +3,8 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 
 export const metadata: Metadata = {
-  title: "Asistente IA para Mayores - Tu compañero digital",
-  description: "Un asistente inteligente diseñado especialmente para personas mayores. Fácil de usar, siempre disponible y listo para ayudarte.",
+  title: "MenteViva - Tu compañero inteligente",
+  description: "MenteViva es un asistente con inteligencia artificial diseñado especialmente para personas mayores. Fácil de usar, siempre disponible y listo para ayudarte.",
 };
 
 export default function RootLayout({

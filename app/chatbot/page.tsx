@@ -5,12 +5,100 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 
-// Tipo para los mensajes del chat
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+}
+
+function LogoIcon({ className = "w-10 h-10" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="24" cy="24" r="24" fill="url(#logo-chat)" />
+      <path d="M24 12c-5.5 0-10 4-10 9 0 3 1.5 5.6 3.8 7.2.2.2.2.4.2.7l-.5 3.1c-.1.5.4.9.8.7l3.3-1.5c.2-.1.4-.1.6 0 .6.1 1.2.2 1.8.2 5.5 0 10-4 10-9s-4.5-9-10-9z" fill="white" opacity="0.95"/>
+      <circle cx="19.5" cy="20.5" r="1.5" fill="#1a7a6d"/>
+      <circle cx="24" cy="20.5" r="1.5" fill="#1a7a6d"/>
+      <circle cx="28.5" cy="20.5" r="1.5" fill="#1a7a6d"/>
+      <defs>
+        <linearGradient id="logo-chat" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#1a7a6d"/><stop offset="1" stopColor="#22a196"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
+function BotAvatar() {
+  return (
+    <div
+      className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
+      style={{ background: 'linear-gradient(135deg, #1a7a6d, #22a196)', boxShadow: '0 2px 8px rgba(26, 122, 109, 0.25)' }}
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2c-4.4 0-8 3.2-8 7.2 0 2.4 1.2 4.5 3 5.8.2.1.2.3.2.5l-.4 2.5c-.1.4.3.7.7.5l2.6-1.2c.2-.1.3-.1.5 0 .5.1 1 .2 1.4.2 4.4 0 8-3.2 8-7.2S16.4 2 12 2z" fill="white" opacity="0.95"/>
+        <circle cx="9" cy="9" r="1.2" fill="#1a7a6d"/>
+        <circle cx="12" cy="9" r="1.2" fill="#1a7a6d"/>
+        <circle cx="15" cy="9" r="1.2" fill="#1a7a6d"/>
+      </svg>
+    </div>
+  );
+}
+
+function UserAvatar({ email }: { email: string | null }) {
+  const initial = email ? email.charAt(0).toUpperCase() : "U";
+  return (
+    <div
+      className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 text-sm font-bold text-white"
+      style={{ background: 'linear-gradient(135deg, #e8985e, #d07a3e)', boxShadow: '0 2px 8px rgba(232, 152, 94, 0.25)' }}
+    >
+      {initial}
+    </div>
+  );
+}
+
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+}
+
+const SUGGESTIONS = [
+  { text: "¿Qué tiempo hace hoy?", icon: "sun" },
+  { text: "Cuéntame un dato curioso", icon: "bulb" },
+  { text: "¿Cómo puedo dormir mejor?", icon: "moon" },
+  { text: "Recomiéndame una receta", icon: "chef" },
+];
+
+function SuggestionIcon({ type }: { type: string }) {
+  switch (type) {
+    case "sun":
+      return (
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <circle cx="9" cy="9" r="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+          <path d="M9 1v2M9 15v2M1 9h2M15 9h2M3.3 3.3l1.4 1.4M13.3 13.3l1.4 1.4M3.3 14.7l1.4-1.4M13.3 4.7l1.4-1.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+      );
+    case "bulb":
+      return (
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M7 14h4M7.5 16h3M9 2a5 5 0 00-2 9.6V13h4v-1.4A5 5 0 009 2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+        </svg>
+      );
+    case "moon":
+      return (
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M16 10.3A7 7 0 117.7 2a5.5 5.5 0 008.3 8.3z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+        </svg>
+      );
+    case "chef":
+      return (
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M5 15h8M4 9c-1.1 0-2-.9-2-2a2 2 0 013-1.7A3 3 0 019 2a3 3 0 014 3.3A2 2 0 0114 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+          <path d="M5 9v4a2 2 0 002 2h4a2 2 0 002-2V9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+        </svg>
+      );
+    default:
+      return null;
+  }
 }
 
 export default function ChatbotPage() {
@@ -20,7 +108,7 @@ export default function ChatbotPage() {
     {
       id: "welcome",
       role: "assistant",
-      content: "¡Hola! 👋 Soy tu asistente personal. Estoy aquí para ayudarte en lo que necesites. ¿En qué puedo ayudarte hoy?",
+      content: "¡Hola! Soy tu asistente de MenteViva. Estoy aquí para ayudarte en lo que necesites. ¿En qué puedo ayudarte hoy?",
       timestamp: new Date(),
     },
   ]);
@@ -34,7 +122,6 @@ export default function ChatbotPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const MAX_TEXTAREA_HEIGHT = 140;
 
-  // Verificar autenticación y redirigir si no está autenticado
   useEffect(() => {
     if (!authLoading && !user) {
       const currentPath = window.location.pathname;
@@ -42,7 +129,6 @@ export default function ChatbotPage() {
     }
   }, [user, authLoading, router]);
 
-  // Scroll automático al final de los mensajes
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -59,33 +145,30 @@ export default function ChatbotPage() {
     scrollToBottom();
   }, [messages]);
 
-  // Obtener información del usuario
   useEffect(() => {
     if (user) {
       setUserEmail(user.email ?? null);
     }
   }, [user]);
 
-  // Cerrar sesión
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/");
     router.refresh();
   };
 
-  // Enviar mensaje
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const handleSend = async (text?: string) => {
+    const messageText = text || input.trim();
+    if (!messageText || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input.trim(),
+      content: messageText,
       timestamp: new Date(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    const messageText = input.trim();
     setInput("");
     setIsLoading(true);
 
@@ -98,7 +181,6 @@ export default function ChatbotPage() {
     adjustTextareaHeight();
   }, [input]);
 
-  // Manejar Enter para enviar
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -106,7 +188,6 @@ export default function ChatbotPage() {
     }
   };
 
-  // Iniciar grabación de voz
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -122,8 +203,6 @@ export default function ChatbotPage() {
       recorder.onstop = async () => {
         const audioBlob = new Blob(chunks, { type: "audio/webm" });
         await sendVoiceMessage(audioBlob);
-        
-        // Detener todos los tracks del stream
         stream.getTracks().forEach(track => track.stop());
       };
 
@@ -143,7 +222,6 @@ export default function ChatbotPage() {
     }
   };
 
-  // Detener grabación de voz
   const stopRecording = () => {
     if (mediaRecorder && isRecording) {
       mediaRecorder.stop();
@@ -151,7 +229,6 @@ export default function ChatbotPage() {
     }
   };
 
-  // Enviar mensaje de voz al servidor
   const sendVoiceMessage = async (audioBlob: Blob) => {
     setIsLoading(true);
 
@@ -173,7 +250,6 @@ export default function ChatbotPage() {
       const chatbotResponseText = data.response || "";
 
       if (transcribedText) {
-        // Agregar el mensaje transcrito como mensaje del usuario con icono de micrófono
         const userMessage: Message = {
           id: Date.now().toString(),
           role: "user",
@@ -182,7 +258,6 @@ export default function ChatbotPage() {
         };
         setMessages((prev) => [...prev, userMessage]);
 
-        // Si la API de voz devuelve una respuesta completa, agregarla
         if (chatbotResponseText && chatbotResponseText.trim()) {
           const assistantMessage: Message = {
             id: (Date.now() + 1).toString(),
@@ -192,21 +267,17 @@ export default function ChatbotPage() {
           };
           setMessages((prev) => [...prev, assistantMessage]);
 
-          // Play the audio response if available
           if (data.audio && data.audioType) {
             try {
-              // Convert base64 audio to blob
               const audioBytes = Uint8Array.from(atob(data.audio), c => c.charCodeAt(0));
               const audioBlob = new Blob([audioBytes], { type: data.audioType });
               const audioUrl = URL.createObjectURL(audioBlob);
 
-              // Create and play audio element
               const audio = new Audio(audioUrl);
               audio.play().catch((err) => {
                 console.error("Error playing audio:", err);
               });
 
-              // Clean up the URL after playing
               audio.onended = () => {
                 URL.revokeObjectURL(audioUrl);
               };
@@ -215,7 +286,6 @@ export default function ChatbotPage() {
             }
           }
         } else {
-          // Si no hay respuesta directa de la API de voz, enviar el texto transcrito al chat normal
           await sendTextMessage(transcribedText);
         }
       } else {
@@ -237,7 +307,6 @@ export default function ChatbotPage() {
     }
   };
 
-  // Enviar mensaje de texto (extraído de handleSend para reutilizar)
   const sendTextMessage = async (text: string) => {
     try {
       const response = await fetch("/api/chat", {
@@ -273,8 +342,8 @@ export default function ChatbotPage() {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: error instanceof Error 
-          ? `Error: ${error.message}` 
+        content: error instanceof Error
+          ? `Error: ${error.message}`
           : "Lo siento, no pude conectar con el servidor. Intenta de nuevo.",
         timestamp: new Date(),
       };
@@ -282,7 +351,6 @@ export default function ChatbotPage() {
     }
   };
 
-  // Manejar clic en el botón de voz
   const handleVoiceClick = () => {
     if (isRecording) {
       stopRecording();
@@ -291,15 +359,15 @@ export default function ChatbotPage() {
     }
   };
 
-  // Mostrar loading mientras se verifica la autenticación
+  const isWelcomeOnly = messages.length === 1 && messages[0].id === "welcome";
+
+  // Loading state
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-bg-secondary)' }}>
-        <div className="text-center">
-          <div className="w-16 h-16 rounded-full mx-auto mb-6 flex items-center justify-center text-4xl animate-pulse" style={{ background: 'var(--color-primary)' }}>
-            ⏳
-          </div>
-          <p className="text-lg" style={{ color: 'var(--color-text-secondary)' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-bg-main)' }}>
+        <div className="text-center animate-fade-in">
+          <LogoIcon className="w-16 h-16 mx-auto mb-6 animate-pulse" />
+          <p className="text-lg font-medium" style={{ color: 'var(--color-text-secondary)' }}>
             Verificando sesión...
           </p>
         </div>
@@ -307,132 +375,238 @@ export default function ChatbotPage() {
     );
   }
 
-  // Si no hay usuario, no mostrar nada (ya se está redirigiendo)
   if (!user) {
     return null;
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'var(--color-bg-secondary)' }}>
-      {/* Cabecera */}
-      <header 
-        className="py-4 px-6 flex items-center justify-between"
-        style={{ background: 'var(--color-bg-card)', borderBottom: '1px solid var(--color-border)' }}
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl" style={{ background: 'var(--color-primary)' }}>
-            💬
-          </div>
-          <div>
-            <h1 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
-              Tu Asistente
-            </h1>
-            {userEmail && (
-              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                {userEmail}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <button
-          onClick={handleLogout}
-          className="btn btn-secondary text-base px-6"
-          aria-label="Cerrar sesión"
+    <div className="h-screen flex flex-col" style={{ background: 'var(--color-bg-secondary)' }}>
+      {/* Header with gradient accent line */}
+      <div className="shrink-0">
+        <div className="h-1 gradient-warm" />
+        <header
+          className="py-3 px-4 md:px-6 flex items-center justify-between"
+          style={{
+            background: 'var(--color-bg-card)',
+            borderBottom: '1px solid var(--color-border)',
+          }}
         >
-          Salir
-        </button>
-      </header>
+          <div className="flex items-center gap-3">
+            <LogoIcon className="w-10 h-10" />
+            <div>
+              <h1 className="text-lg font-bold leading-tight" style={{ color: 'var(--color-primary)' }}>
+                MenteViva
+              </h1>
+              {userEmail && (
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  {userEmail}
+                </p>
+              )}
+            </div>
+          </div>
 
-      {/* Área de mensajes */}
-      <main 
+          <div className="flex items-center gap-2">
+            {/* Online indicator */}
+            <div
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+              style={{ background: 'rgba(56, 161, 105, 0.1)', color: '#38a169' }}
+            >
+              <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#38a169' }} />
+              En línea
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-200"
+              style={{
+                color: 'var(--color-text-secondary)',
+                background: 'var(--color-bg-secondary)',
+                border: '1px solid var(--color-border)',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-primary-muted)'; e.currentTarget.style.color = 'var(--color-primary)'; e.currentTarget.style.borderColor = 'var(--color-primary-light)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--color-bg-secondary)'; e.currentTarget.style.color = 'var(--color-text-secondary)'; e.currentTarget.style.borderColor = 'var(--color-border)'; }}
+              aria-label="Cerrar sesión"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M6 14H3a1 1 0 01-1-1V3a1 1 0 011-1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Salir
+            </button>
+          </div>
+        </header>
+      </div>
+
+      {/* Messages area */}
+      <main
         id="main-content"
         className="flex-1 overflow-y-auto px-4 py-6"
-        style={{ maxHeight: 'calc(100vh - 180px)' }}
         aria-label="Conversación con el asistente"
         role="log"
         aria-live="polite"
+        style={{
+          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(26, 122, 109, 0.03) 1px, transparent 0)',
+          backgroundSize: '24px 24px',
+        }}
       >
-        <div className="max-w-3xl mx-auto space-y-6">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"} animate-fade-in`}
-            >
-              <div
-                className={`max-w-[85%] md:max-w-[75%] p-5 ${
-                  message.role === "user" ? "message-user" : "message-bot"
-                }`}
-              >
-                {message.role === "assistant" && (
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-lg">🤖</span>
-                    <span className="font-semibold text-base" style={{ color: 'var(--color-primary)' }}>
-                      Asistente
-                    </span>
-                  </div>
-                )}
-                <p className="text-lg leading-relaxed whitespace-pre-wrap ">
-                  {message.content}
-                </p>
+        <div className="max-w-3xl mx-auto">
+          {/* Welcome screen */}
+          {isWelcomeOnly && (
+            <div className="text-center py-8 animate-fade-in">
+              <div className="mb-6">
+                <div
+                  className="w-20 h-20 rounded-3xl mx-auto flex items-center justify-center animate-float"
+                  style={{ background: 'linear-gradient(135deg, #1a7a6d, #22a196)', boxShadow: '0 8px 24px rgba(26, 122, 109, 0.3)' }}
+                >
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2c-4.4 0-8 3.2-8 7.2 0 2.4 1.2 4.5 3 5.8.2.1.2.3.2.5l-.4 2.5c-.1.4.3.7.7.5l2.6-1.2c.2-.1.3-.1.5 0 .5.1 1 .2 1.4.2 4.4 0 8-3.2 8-7.2S16.4 2 12 2z" fill="white" opacity="0.95"/>
+                    <circle cx="9" cy="9" r="1.2" fill="#1a7a6d"/>
+                    <circle cx="12" cy="9" r="1.2" fill="#1a7a6d"/>
+                    <circle cx="15" cy="9" r="1.2" fill="#1a7a6d"/>
+                  </svg>
+                </div>
               </div>
-            </div>
-          ))}
 
-          {/* Indicador de escritura */}
-          {isLoading && (
-            <div className="flex justify-start animate-fade-in">
-              <div className="message-bot p-5">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg">🤖</span>
-                  <span className="font-semibold text-base" style={{ color: 'var(--color-primary)' }}>
-                    Asistente
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">Escribiendo</span>
-                  <span className="flex gap-1">
-                    <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--color-primary)', animationDelay: '0ms' }}></span>
-                    <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--color-primary)', animationDelay: '150ms' }}></span>
-                    <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--color-primary)', animationDelay: '300ms' }}></span>
-                  </span>
-                </div>
+              <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-text-primary)' }}>
+                ¡Hola! Soy tu asistente
+              </h2>
+              <p className="text-base mb-8 max-w-md mx-auto" style={{ color: 'var(--color-text-secondary)' }}>
+                Estoy aquí para ayudarte en lo que necesites. Puedes escribirme o hablarme con tu voz.
+              </p>
+
+              {/* Suggestion chips */}
+              <div className="flex flex-wrap justify-center gap-3 max-w-lg mx-auto">
+                {SUGGESTIONS.map((suggestion, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleSend(suggestion.text)}
+                    disabled={isLoading}
+                    className="flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-medium transition-all duration-200"
+                    style={{
+                      background: 'var(--color-bg-card)',
+                      color: 'var(--color-text-primary)',
+                      border: '1px solid var(--color-border)',
+                      boxShadow: 'var(--shadow-sm)',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--color-primary-light)'; e.currentTarget.style.background = 'var(--color-primary-muted)'; e.currentTarget.style.color = 'var(--color-primary)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.background = 'var(--color-bg-card)'; e.currentTarget.style.color = 'var(--color-text-primary)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
+                  >
+                    <span style={{ color: 'var(--color-accent)' }}>
+                      <SuggestionIcon type={suggestion.icon} />
+                    </span>
+                    {suggestion.text}
+                  </button>
+                ))}
               </div>
             </div>
           )}
 
-          <div ref={messagesEndRef} />
+          {/* Message list (skip welcome when showing welcome screen) */}
+          <div className={`space-y-4 ${isWelcomeOnly ? 'hidden' : ''}`}>
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"} animate-fade-in`}
+              >
+                {/* Bot avatar */}
+                {message.role === "assistant" && (
+                  <div className="shrink-0 mt-1">
+                    <BotAvatar />
+                  </div>
+                )}
+
+                {/* Message content */}
+                <div className={`max-w-[80%] md:max-w-[70%] ${message.role === "user" ? "order-first" : ""}`}>
+                  <div
+                    className={`px-5 py-4 ${
+                      message.role === "user" ? "message-user" : "message-bot"
+                    }`}
+                  >
+                    {message.role === "assistant" && (
+                      <p className="text-xs font-bold mb-1" style={{ color: 'var(--color-primary)', opacity: 0.8 }}>
+                        MenteViva
+                      </p>
+                    )}
+                    <p className="text-base leading-relaxed whitespace-pre-wrap">
+                      {message.content}
+                    </p>
+                  </div>
+                  {/* Timestamp */}
+                  <p
+                    className={`text-xs mt-1.5 px-2 ${message.role === "user" ? "text-right" : "text-left"}`}
+                    style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}
+                  >
+                    {formatTime(message.timestamp)}
+                  </p>
+                </div>
+
+                {/* User avatar */}
+                {message.role === "user" && (
+                  <div className="shrink-0 mt-1">
+                    <UserAvatar email={userEmail} />
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* Typing indicator */}
+            {isLoading && (
+              <div className="flex gap-3 justify-start animate-fade-in">
+                <div className="shrink-0 mt-1">
+                  <BotAvatar />
+                </div>
+                <div className="message-bot px-5 py-4">
+                  <p className="text-xs font-bold mb-2" style={{ color: 'var(--color-primary)', opacity: 0.8 }}>
+                    MenteViva
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Pensando</span>
+                    <span className="flex gap-1">
+                      <span
+                        className="w-2 h-2 rounded-full"
+                        style={{ background: 'var(--color-primary)', animation: 'bounce-dot 1.4s infinite ease-in-out', animationDelay: '0ms' }}
+                      />
+                      <span
+                        className="w-2 h-2 rounded-full"
+                        style={{ background: 'var(--color-primary)', animation: 'bounce-dot 1.4s infinite ease-in-out', animationDelay: '200ms' }}
+                      />
+                      <span
+                        className="w-2 h-2 rounded-full"
+                        style={{ background: 'var(--color-primary)', animation: 'bounce-dot 1.4s infinite ease-in-out', animationDelay: '400ms' }}
+                      />
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
         </div>
       </main>
 
-      {/* Área de entrada */}
-      <footer 
-        className="p-4"
-        style={{ background: 'var(--color-bg-card)', borderTop: '1px solid var(--color-border)' }}
-      >
-        <div className="max-w-3xl mx-auto">
-          {/* Indicador de grabación */}
+      {/* Input area */}
+      <footer className="shrink-0" style={{ background: 'var(--color-bg-card)', borderTop: '1px solid var(--color-border)' }}>
+        <div className="max-w-3xl mx-auto px-4 py-4">
+          {/* Recording indicator */}
           {isRecording && (
-            <div className="mb-3 p-3 rounded-lg flex items-center gap-3 animate-fade-in" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444' }}>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full animate-pulse" style={{ background: '#ef4444' }}></span>
-                <span className="font-semibold" style={{ color: '#ef4444' }}>
-                  Grabando...
-                </span>
-              </div>
-              <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                Haz clic en el botón de detener cuando termines
+            <div
+              className="mb-3 px-4 py-3 rounded-2xl flex items-center gap-3 animate-scale-in"
+              style={{ background: 'rgba(229, 62, 62, 0.06)', border: '1.5px solid rgba(229, 62, 62, 0.15)' }}
+            >
+              <span
+                className="w-3 h-3 rounded-full shrink-0"
+                style={{ background: '#e53e3e', animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}
+              />
+              <span className="font-semibold text-sm" style={{ color: '#c53030' }}>
+                Grabando...
+              </span>
+              <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                Pulsa detener cuando termines
               </span>
             </div>
           )}
+
           <div className="chat-input-wrapper">
-            <button
-              type="button"
-              className="chat-input-quick-action"
-              aria-label="Adjuntar contenido"
-            >
-              <span aria-hidden="true">+</span>
-            </button>
             <div className="flex-1 min-w-0">
               <label htmlFor="message-input" className="sr-only">
                 Escribe tu mensaje
@@ -450,40 +624,58 @@ export default function ChatbotPage() {
                 aria-label="Escribe tu mensaje"
               />
             </div>
+
+            {/* Voice button */}
             <button
               type="button"
               onClick={handleVoiceClick}
-              disabled={isLoading}
-              className={`chat-input-icon ${isRecording ? 'recording' : ''}`}
+              disabled={isLoading && !isRecording}
+              className="chat-input-icon"
               aria-label={isRecording ? "Detener grabación" : "Grabar mensaje de voz"}
-              style={isRecording ? { 
-                background: '#ef4444', 
-                animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' 
+              style={isRecording ? {
+                background: '#e53e3e',
+                color: 'white',
+                animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                boxShadow: '0 0 0 4px rgba(229, 62, 62, 0.15)',
               } : {}}
             >
-              <span className="text-lg" aria-hidden="true">
-                {isRecording ? '⏹️' : '🎤'}
-              </span>
+              {isRecording ? (
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <rect x="5" y="5" width="10" height="10" rx="2" fill="currentColor"/>
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <rect x="7" y="2" width="6" height="10" rx="3" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                  <path d="M4 10c0 3.3 2.7 6 6 6s6-2.7 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+                  <line x1="10" y1="16" x2="10" y2="19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              )}
             </button>
+
+            {/* Send button */}
             <button
-              onClick={handleSend}
+              onClick={() => handleSend()}
               disabled={!input.trim() || isLoading}
               className="chat-send-button"
               aria-label="Enviar mensaje"
             >
               {isLoading ? (
-                <span className="animate-pulse text-2xl">⏳</span>
+                <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.3" fill="none"/>
+                  <path d="M12 2a10 10 0 019.5 6.8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" fill="none"/>
+                </svg>
               ) : (
-                <span className="text-2xl" aria-hidden="true">
-                  ↑
-                </span>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M10 16V4m0 0l-5 5m5-5l5 5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               )}
             </button>
           </div>
-          <p className="text-center mt-3 text-base" style={{ color: 'var(--color-text-muted)' }}>
-            {isRecording 
-              ? "Pulsa el botón de detener para enviar tu mensaje de voz" 
-              : "Pulsa Enter para enviar, usa el botón o graba un mensaje de voz"
+
+          <p className="text-center mt-3 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+            {isRecording
+              ? "Pulsa el botón de detener para enviar tu mensaje de voz"
+              : "Enter para enviar · Shift+Enter para nueva línea · Micrófono para hablar"
             }
           </p>
         </div>

@@ -6,19 +6,36 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 
+function LogoIcon({ className = "w-10 h-10" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="24" cy="24" r="24" fill="url(#logo-reg)" />
+      <path d="M24 12c-5.5 0-10 4-10 9 0 3 1.5 5.6 3.8 7.2.2.2.2.4.2.7l-.5 3.1c-.1.5.4.9.8.7l3.3-1.5c.2-.1.4-.1.6 0 .6.1 1.2.2 1.8.2 5.5 0 10-4 10-9s-4.5-9-10-9z" fill="white" opacity="0.95"/>
+      <circle cx="19.5" cy="20.5" r="1.5" fill="#1a7a6d"/>
+      <circle cx="24" cy="20.5" r="1.5" fill="#1a7a6d"/>
+      <circle cx="28.5" cy="20.5" r="1.5" fill="#1a7a6d"/>
+      <defs>
+        <linearGradient id="logo-reg" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#1a7a6d"/><stop offset="1" stopColor="#22a196"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
 function RegisterContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const redirectTo = searchParams.get("redirect") || "/chatbot";
-  
-  // Si el usuario ya está autenticado, redirigir inmediatamente
+
   useEffect(() => {
     if (user) {
       router.push(redirectTo);
       router.refresh();
     }
   }, [user, redirectTo, router]);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -31,14 +48,12 @@ function RegisterContent() {
     setError("");
     setLoading(true);
 
-    // Validar que las contraseñas coincidan
     if (password !== confirmPassword) {
       setError("Las contraseñas no coinciden. Por favor, escríbelas de nuevo.");
       setLoading(false);
       return;
     }
 
-    // Validar longitud de contraseña
     if (password.length < 6) {
       setError("La contraseña debe tener al menos 6 caracteres.");
       setLoading(false);
@@ -52,7 +67,6 @@ function RegisterContent() {
       });
 
       if (authError) {
-        // Mensajes de error amigables para personas mayores
         if (authError.message.includes("already registered")) {
           setError("Este correo ya está registrado. ¿Quizás ya tienes una cuenta?");
         } else if (authError.message.includes("valid email")) {
@@ -93,35 +107,40 @@ function RegisterContent() {
         setError("Ha ocurrido un error con Google. Por favor, inténtalo de nuevo.");
         setLoading(false);
       }
-      // Si no hay error, el usuario será redirigido automáticamente a Google
-      // y luego a nuestro callback
     } catch (err) {
       setError("Ha ocurrido un error inesperado. Por favor, inténtalo de nuevo.");
       setLoading(false);
     }
   };
 
-  // Pantalla de éxito
+  // Success screen
   if (success) {
     return (
-      <div className="h-screen flex items-center justify-center px-6 py-4 overflow-y-auto" style={{ background: 'var(--color-bg-secondary)' }}>
-        <div className="w-full max-w-lg text-center shrink-0">
-          <div className="card">
-            <div className="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center text-3xl" style={{ background: '#dcfce7' }}>
-              ✅
+      <div className="min-h-screen flex items-center justify-center px-6 py-8" style={{ background: 'var(--color-bg-main)' }}>
+        <div className="w-full max-w-md text-center animate-scale-in">
+          <div className="card" style={{ padding: '2.5rem 2rem' }}>
+            <div
+              className="w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center"
+              style={{ background: '#dcfce7' }}
+            >
+              <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                <circle cx="20" cy="20" r="16" stroke="#38a169" strokeWidth="2.5" fill="none"/>
+                <path d="M13 20l5 5 9-9" stroke="#38a169" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </div>
-            <h1 className="text-lg font-bold mb-2" style={{ color: 'var(--color-text-primary)' }}>
+            <h1 className="text-2xl font-bold mb-3" style={{ color: 'var(--color-text-primary)' }}>
               ¡Registro completado!
             </h1>
-            <p className="text-sm mb-4" style={{ color: 'var(--color-text-secondary)' }}>
-              Hemos enviado un correo a <strong>{email}</strong>. Revisa tu bandeja de entrada.
+            <p className="text-base mb-8" style={{ color: 'var(--color-text-secondary)', lineHeight: '1.7' }}>
+              Hemos enviado un correo a <strong style={{ color: 'var(--color-primary)' }}>{email}</strong>.
+              <br />
+              Revisa tu bandeja de entrada para confirmar tu cuenta.
             </p>
-            <Link 
+            <Link
               href="/auth/login"
-              className="btn btn-primary text-sm w-full py-2"
-              style={{ minHeight: '40px' }}
+              className="btn btn-primary w-full"
             >
-              Iniciar sesión
+              Ir a iniciar sesión
             </Link>
           </div>
         </div>
@@ -130,158 +149,183 @@ function RegisterContent() {
   }
 
   return (
-    <div className="h-screen flex items-center justify-center px-6 py-4 overflow-y-auto" style={{ background: 'var(--color-bg-secondary)' }}>
-      <div className="w-full max-w-lg flex flex-col">
-        {/* Logo y título */}
-        <div className="text-center mb-4 shrink-0">
-          <Link href="/" className="inline-flex items-center gap-2 mb-2">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl" style={{ background: 'var(--color-primary)' }}>
-              💬
-            </div>
-          </Link>
-          <h1 className="text-xl md:text-2xl font-bold mb-1" style={{ color: 'var(--color-text-primary)' }}>
-            Crear cuenta
-          </h1>
-          <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-            Es gratis
+    <div className="min-h-screen flex" style={{ background: 'var(--color-bg-main)' }}>
+      {/* Left decorative panel — hidden on mobile */}
+      <div className="hidden lg:flex lg:w-[45%] gradient-warm relative overflow-hidden items-center justify-center p-12">
+        <div className="absolute top-0 right-0 w-64 h-64 rounded-full opacity-10" style={{ background: 'white', transform: 'translate(30%, -30%)' }} />
+        <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full opacity-10" style={{ background: 'white', transform: 'translate(-30%, 30%)' }} />
+
+        <div className="relative z-10 text-center max-w-md">
+          <div className="mb-8 animate-float">
+            <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="60" cy="60" r="56" stroke="white" strokeWidth="2" opacity="0.3" fill="none"/>
+              <circle cx="60" cy="60" r="40" fill="white" opacity="0.15"/>
+              <circle cx="60" cy="42" r="14" stroke="white" strokeWidth="3" fill="none" opacity="0.9"/>
+              <path d="M36 82c0-13.3 10.7-24 24-24s24 10.7 24 24" stroke="white" strokeWidth="3" strokeLinecap="round" fill="none" opacity="0.9"/>
+              <path d="M70 38l5-5m0 0l5 5m-5-5v14" stroke="#fce8d5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Únete a MenteViva
+          </h2>
+          <p className="text-lg text-white opacity-80 leading-relaxed">
+            Crea tu cuenta gratis y empieza a disfrutar de un compañero inteligente que siempre está ahí para ti.
           </p>
         </div>
+      </div>
 
-        {/* Formulario */}
-        <div className="card shrink-0">
-          <form onSubmit={handleRegister} className="space-y-3">
-            {/* Mensaje de error */}
-            {error && (
-              <div 
-                className="p-2 rounded text-xs"
-                style={{ background: '#fef2f2', border: '1px solid var(--color-error)', color: 'var(--color-error)' }}
-                role="alert"
-                aria-live="polite"
-              >
-                ⚠️ {error}
-              </div>
-            )}
-
-            {/* Campo de email */}
-            <div>
-              <label htmlFor="email" className="label text-sm">
-                Correo
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="input"
-                placeholder="correo@ejemplo.com"
-                required
-                autoComplete="email"
-              />
-            </div>
-
-            {/* Campo de contraseña */}
-            <div>
-              <label htmlFor="password" className="label text-sm">
-                Contraseña
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input"
-                placeholder="Mín. 6 caracteres"
-                required
-                autoComplete="new-password"
-                minLength={6}
-              />
-            </div>
-
-            {/* Confirmar contraseña */}
-            <div>
-              <label htmlFor="confirmPassword" className="label text-sm">
-                Repetir
-              </label>
-              <input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="input"
-                placeholder="Escribe la misma contraseña"
-                required
-                autoComplete="new-password"
-                minLength={6}
-              />
-            </div>
-
-            {/* Botón de envío */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn btn-primary w-full text-sm py-2"
-              style={{ minHeight: '40px' }}
-            >
-              {loading ? (
-                <span className="flex items-center gap-1 text-xs">
-                  <span className="animate-pulse">⏳</span>
-                </span>
-              ) : (
-                "Crear cuenta"
-              )}
-            </button>
-
-            {/* Separador */}
-            <div className="relative my-2">
-              <div className="absolute inset-0 flex items-center" style={{ borderTopWidth: '1px', borderTopColor: 'var(--color-border)' }}></div>
-              <div className="relative flex justify-center text-xs" style={{ background: 'var(--color-bg-card)' }}>
-                <span style={{ padding: '0 0.5rem', color: 'var(--color-text-muted)', background: 'var(--color-bg-card)' }}>
-                  O
-                </span>
-              </div>
-            </div>
-
-            {/* Botón de Google */}
-            <button
-              type="button"
-              onClick={handleGoogleSignUp}
-              disabled={loading}
-              className="btn w-full text-sm py-2 flex items-center justify-center gap-1"
-              style={{ 
-                minHeight: '40px',
-                background: 'white',
-                color: 'var(--color-text-primary)',
-                border: '1px solid var(--color-border)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'white';
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-              </svg>
-              Google
-            </button>
-          </form>
-
-          {/* Enlace a login */}
-          <div className="mt-3 pt-2 text-center hidden md:block" style={{ borderTop: '1px solid var(--color-border)' }}>
-            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-              ¿Ya tienes cuenta?
-            </p>
-            <Link 
-              href="/auth/login"
-              className="inline-block text-xs font-semibold underline"
-              style={{ color: 'var(--color-primary)' }}
-            >
-              Iniciar sesión
+      {/* Right form panel */}
+      <div className="flex-1 flex items-center justify-center px-6 py-8 overflow-y-auto">
+        <div className="w-full max-w-md">
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <Link href="/" className="inline-flex items-center gap-3 mb-6">
+              <LogoIcon className="w-12 h-12" />
+              <span className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>MenteViva</span>
             </Link>
+            <h1 className="text-2xl md:text-3xl font-bold mb-2" style={{ color: 'var(--color-text-primary)' }}>
+              Crear cuenta
+            </h1>
+            <p className="text-base" style={{ color: 'var(--color-text-secondary)' }}>
+              Es gratis y solo tarda un momento
+            </p>
+          </div>
+
+          {/* Form Card */}
+          <div className="card" style={{ padding: '2rem' }}>
+            <form onSubmit={handleRegister} className="space-y-5">
+              {error && (
+                <div
+                  className="p-4 rounded-lg flex items-start gap-3 animate-fade-in"
+                  style={{ background: '#fef2f2', border: '1px solid #fecaca', color: 'var(--color-error)' }}
+                  role="alert"
+                  aria-live="polite"
+                >
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="shrink-0 mt-0.5">
+                    <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="none"/>
+                    <path d="M10 6v4m0 4h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                  <span className="text-sm font-medium">{error}</span>
+                </div>
+              )}
+
+              <div>
+                <label htmlFor="email" className="label">
+                  Correo electrónico
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="input"
+                  placeholder="correo@ejemplo.com"
+                  required
+                  autoComplete="email"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="password" className="label">
+                  Contraseña
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="input"
+                  placeholder="Mínimo 6 caracteres"
+                  required
+                  autoComplete="new-password"
+                  minLength={6}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="confirmPassword" className="label">
+                  Repetir contraseña
+                </label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="input"
+                  placeholder="Escribe la misma contraseña"
+                  required
+                  autoComplete="new-password"
+                  minLength={6}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn btn-primary w-full"
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.3" fill="none"/>
+                      <path d="M12 2a10 10 0 019.5 6.8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" fill="none"/>
+                    </svg>
+                    Creando cuenta...
+                  </span>
+                ) : (
+                  "Crear cuenta"
+                )}
+              </button>
+
+              {/* Divider */}
+              <div className="relative py-2">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full" style={{ borderTopWidth: '1px', borderTopColor: 'var(--color-border)', borderTopStyle: 'solid' }}></div>
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="px-3 text-sm font-medium" style={{ color: 'var(--color-text-muted)', background: 'var(--color-bg-card)' }}>
+                    o regístrate con
+                  </span>
+                </div>
+              </div>
+
+              {/* Google */}
+              <button
+                type="button"
+                onClick={handleGoogleSignUp}
+                disabled={loading}
+                className="btn w-full flex items-center justify-center gap-3"
+                style={{
+                  background: 'var(--color-bg-card)',
+                  color: 'var(--color-text-primary)',
+                  border: '2px solid var(--color-border)',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--color-primary-light)'; e.currentTarget.style.background = 'var(--color-primary-muted)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.background = 'var(--color-bg-card)'; }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                Continuar con Google
+              </button>
+            </form>
+
+            {/* Login link */}
+            <div className="mt-6 pt-5 text-center" style={{ borderTop: '1px solid var(--color-border)' }}>
+              <p className="text-base" style={{ color: 'var(--color-text-secondary)' }}>
+                ¿Ya tienes cuenta?{" "}
+                <Link
+                  href="/auth/login"
+                  className="font-bold underline underline-offset-2"
+                  style={{ color: 'var(--color-primary)' }}
+                >
+                  Iniciar sesión
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -292,12 +336,10 @@ function RegisterContent() {
 export default function RegisterPage() {
   return (
     <Suspense fallback={
-      <div className="h-screen flex items-center justify-center px-6 py-4" style={{ background: 'var(--color-bg-secondary)' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-bg-main)' }}>
         <div className="text-center">
-          <div className="w-10 h-10 rounded-full mx-auto mb-2 flex items-center justify-center text-2xl animate-pulse" style={{ background: 'var(--color-primary)' }}>
-            ⏳
-          </div>
-          <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+          <LogoIcon className="w-14 h-14 mx-auto mb-4 animate-pulse" />
+          <p className="text-base" style={{ color: 'var(--color-text-secondary)' }}>
             Cargando...
           </p>
         </div>
