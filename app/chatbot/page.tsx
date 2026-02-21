@@ -118,6 +118,7 @@ export default function ChatbotPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
+  const [alertStatus, setAlertStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const MAX_TEXTAREA_HEIGHT = 140;
@@ -155,6 +156,25 @@ export default function ChatbotPage() {
     await supabase.auth.signOut();
     router.push("/");
     router.refresh();
+  };
+
+  const handleAlert = async () => {
+    if (alertStatus === "sending") return;
+    setAlertStatus("sending");
+    try {
+      const response = await fetch("/api/alert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user: userEmail, timestamp: new Date().toISOString() }),
+      });
+      if (!response.ok) throw new Error(`Error ${response.status}`);
+      setAlertStatus("sent");
+      setTimeout(() => setAlertStatus("idle"), 4000);
+    } catch (error) {
+      console.error("Error al enviar alerta:", error);
+      setAlertStatus("error");
+      setTimeout(() => setAlertStatus("idle"), 4000);
+    }
   };
 
   const handleSend = async (text?: string) => {
@@ -414,6 +434,65 @@ export default function ChatbotPage() {
               <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#38a169' }} />
               En línea
             </div>
+
+            {/* Alert button */}
+            <button
+              onClick={handleAlert}
+              disabled={alertStatus === "sending"}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200"
+              style={{
+                background: alertStatus === "sent"
+                  ? 'rgba(56, 161, 105, 0.12)'
+                  : alertStatus === "error"
+                  ? 'rgba(229, 62, 62, 0.08)'
+                  : 'rgba(229, 62, 62, 0.1)',
+                color: alertStatus === "sent"
+                  ? '#276749'
+                  : alertStatus === "error"
+                  ? '#c53030'
+                  : '#c53030',
+                border: alertStatus === "sent"
+                  ? '1.5px solid rgba(56, 161, 105, 0.3)'
+                  : '1.5px solid rgba(229, 62, 62, 0.3)',
+                boxShadow: alertStatus === "sending" ? 'none' : '0 0 0 0 rgba(229, 62, 62, 0)',
+                opacity: alertStatus === "sending" ? 0.7 : 1,
+                cursor: alertStatus === "sending" ? 'not-allowed' : 'pointer',
+              }}
+              onMouseEnter={(e) => {
+                if (alertStatus === "idle") {
+                  e.currentTarget.style.background = 'rgba(229, 62, 62, 0.18)';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(229, 62, 62, 0.15)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = alertStatus === "sent"
+                  ? 'rgba(56, 161, 105, 0.12)'
+                  : 'rgba(229, 62, 62, 0.1)';
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+              aria-label="Enviar alerta de emergencia"
+            >
+              {alertStatus === "sending" ? (
+                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.3" fill="none"/>
+                  <path d="M12 2a10 10 0 019.5 6.8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" fill="none"/>
+                </svg>
+              ) : alertStatus === "sent" ? (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 8l3.5 3.5L13 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 1.5a5 5 0 00-5 5v3l-1.5 2H14.5L13 9.5v-3a5 5 0 00-5-5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none"/>
+                  <path d="M6.5 13.5a1.5 1.5 0 003 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              )}
+              <span className="hidden sm:inline">
+                {alertStatus === "sending" ? "Enviando..." : alertStatus === "sent" ? "¡Alerta enviada!" : alertStatus === "error" ? "Error, reintentar" : "Alerta"}
+              </span>
+            </button>
 
             <button
               onClick={handleLogout}
