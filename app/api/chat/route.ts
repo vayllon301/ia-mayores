@@ -21,9 +21,16 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, history } = body as {
+    const { message, history, user_profile } = body as {
       message: string;
       history: ChatMessage[];
+      user_profile?: {
+        name: string;
+        number: string | null;
+        description: string | null;
+        interests: string | null;
+        city: string | null;
+      } | null;
     };
 
     // Validación básica
@@ -61,6 +68,7 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           message,
           history,
+          user_profile: user_profile || null,
         }),
         signal: controller.signal,
       });

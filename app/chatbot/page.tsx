@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { getUserProfile, type UserProfile } from "@/lib/profile";
 
 interface Message {
   id: string;
@@ -119,6 +120,7 @@ export default function ChatbotPage() {
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const [alertStatus, setAlertStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const MAX_TEXTAREA_HEIGHT = 140;
@@ -129,6 +131,12 @@ export default function ChatbotPage() {
       router.push(`/auth/login?redirect=${encodeURIComponent(currentPath)}`);
     }
   }, [user, authLoading, router]);
+
+  useEffect(() => {
+    if (user) {
+      getUserProfile(user.id).then(setProfile);
+    }
+  }, [user]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -340,6 +348,13 @@ export default function ChatbotPage() {
             role: m.role,
             content: m.content,
           })),
+          user_profile: profile ? {
+            name: profile.name,
+            number: profile.number,
+            description: profile.description,
+            interests: profile.interests,
+            city: profile.city,
+          } : null,
         }),
       });
 
