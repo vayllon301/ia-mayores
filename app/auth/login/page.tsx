@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { hasProfile } from "@/lib/profile";
 
 function LogoIcon({ className = "w-10 h-10" }: { className?: string }) {
   return (
@@ -36,8 +37,10 @@ function LoginContent() {
 
   useEffect(() => {
     if (user) {
-      router.push(redirectTo);
-      router.refresh();
+      hasProfile(user.id).then((exists) => {
+        router.push(exists ? redirectTo : "/auth/profile");
+        router.refresh();
+      });
     }
   }, [user, redirectTo, router]);
 
@@ -65,10 +68,9 @@ function LoginContent() {
       }
 
       if (data.session) {
-        setTimeout(() => {
-          router.push(redirectTo);
-          router.refresh();
-        }, 100);
+        const profileExists = await hasProfile(data.session.user.id);
+        router.push(profileExists ? redirectTo : "/auth/profile");
+        router.refresh();
       }
     } catch (err) {
       setError("Ha ocurrido un error inesperado. Por favor, inténtalo de nuevo.");

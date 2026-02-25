@@ -126,17 +126,20 @@ export default function ChatbotPage() {
   const MAX_TEXTAREA_HEIGHT = 140;
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (authLoading) return;
+    if (!user) {
       const currentPath = window.location.pathname;
       router.push(`/auth/login?redirect=${encodeURIComponent(currentPath)}`);
+      return;
     }
+    getUserProfile(user.id).then((p) => {
+      if (!p) {
+        router.push("/auth/profile");
+      } else {
+        setProfile(p);
+      }
+    });
   }, [user, authLoading, router]);
-
-  useEffect(() => {
-    if (user) {
-      getUserProfile(user.id).then(setProfile);
-    }
-  }, [user]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -507,6 +510,26 @@ export default function ChatbotPage() {
               <span className="hidden sm:inline">
                 {alertStatus === "sending" ? "Enviando..." : alertStatus === "sent" ? "¡Alerta enviada!" : alertStatus === "error" ? "Error, reintentar" : "Alerta"}
               </span>
+            </button>
+
+            {/* Profile button */}
+            <button
+              onClick={() => router.push("/auth/profile?edit=true")}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-200"
+              style={{
+                color: 'var(--color-text-secondary)',
+                background: 'var(--color-bg-secondary)',
+                border: '1px solid var(--color-border)',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-primary-muted)'; e.currentTarget.style.color = 'var(--color-primary)'; e.currentTarget.style.borderColor = 'var(--color-primary-light)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--color-bg-secondary)'; e.currentTarget.style.color = 'var(--color-text-secondary)'; e.currentTarget.style.borderColor = 'var(--color-border)'; }}
+              aria-label="Editar perfil"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="5" r="3" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                <path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+              </svg>
+              <span className="hidden sm:inline">Perfil</span>
             </button>
 
             <button

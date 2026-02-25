@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 function CallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/chatbot";
+  const next = searchParams.get("next") || "/auth/profile";
   const [error, setError] = useState<string | null>(null);
 
   // #region agent log

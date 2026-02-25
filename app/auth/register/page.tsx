@@ -27,7 +27,7 @@ function RegisterContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const redirectTo = searchParams.get("redirect") || "/chatbot";
+  const redirectTo = searchParams.get("redirect") || "/auth/profile";
 
   useEffect(() => {
     if (user) {

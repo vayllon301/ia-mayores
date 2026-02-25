@@ -2,10 +2,10 @@
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { hasProfile } from "@/lib/profile";
+import { getUserProfile } from "@/lib/profile";
 
 function LogoIcon({ className = "w-10 h-10" }: { className?: string }) {
   return (
@@ -26,7 +26,11 @@ function LogoIcon({ className = "w-10 h-10" }: { className?: string }) {
 
 function ProfileContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
+
+  // edit mode when coming from chatbot with ?edit=true
+  const isEditMode = searchParams.get("edit") === "true";
 
   const [name, setName] = useState("");
   const [number, setNumber] = useState("");
@@ -36,6 +40,7 @@ function ProfileContent() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(true);
+  const [hasExistingProfile, setHasExistingProfile] = useState(false);
 
   // Auth guard + profile check
   useEffect(() => {
@@ -46,15 +51,27 @@ function ProfileContent() {
       return;
     }
 
-    // Check if profile already exists
-    hasProfile(user.id).then((exists) => {
-      if (exists) {
-        router.push("/chatbot");
+    getUserProfile(user.id).then((profile) => {
+      if (profile) {
+        if (isEditMode) {
+          // Populate form with existing data
+          setName(profile.name);
+          setNumber(profile.number || "");
+          setDescription(profile.description || "");
+          setInterests(profile.interests || "");
+          setCity(profile.city || "");
+          setHasExistingProfile(true);
+          setCheckingProfile(false);
+        } else {
+          // Profile exists and not editing — go to chatbot
+          router.push("/chatbot");
+        }
       } else {
+        // No profile — show create form
         setCheckingProfile(false);
       }
     });
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, isEditMode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,21 +90,39 @@ function ProfileContent() {
       return;
     }
 
-    try {
-      const { error: insertError } = await supabase
-        .from("user_profile")
-        .insert({
-          id: user.id,
-          name: name.trim(),
-          number: number.trim() || null,
-          description: description.trim() || null,
-          interests: interests.trim() || null,
-          city: city.trim() || null,
-        });
+    const profileData = {
+      id: user.id,
+      name: name.trim(),
+      number: number.trim() || null,
+      description: description.trim() || null,
+      interests: interests.trim() || null,
+      city: city.trim() || null,
+    };
 
-      if (insertError) {
-        if (insertError.message.includes("duplicate")) {
-          // Profile already exists, just redirect
+    try {
+      let dbError;
+
+      if (hasExistingProfile) {
+        const { error: updateError } = await supabase
+          .from("user_profile")
+          .update({
+            name: profileData.name,
+            number: profileData.number,
+            description: profileData.description,
+            interests: profileData.interests,
+            city: profileData.city,
+          })
+          .eq("id", user.id);
+        dbError = updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from("user_profile")
+          .insert(profileData);
+        dbError = insertError;
+      }
+
+      if (dbError) {
+        if (dbError.message.includes("duplicate")) {
           router.push("/chatbot");
           return;
         }
@@ -131,19 +166,30 @@ function ProfileContent() {
             <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
               <circle cx="60" cy="60" r="56" stroke="white" strokeWidth="2" opacity="0.3" fill="none"/>
               <circle cx="60" cy="60" r="40" fill="white" opacity="0.15"/>
-              {/* Person silhouette */}
               <circle cx="60" cy="42" r="14" stroke="white" strokeWidth="3" fill="none" opacity="0.9"/>
               <path d="M36 82c0-13.3 10.7-24 24-24s24 10.7 24 24" stroke="white" strokeWidth="3" strokeLinecap="round" fill="none" opacity="0.9"/>
-              {/* Checkmark */}
-              <circle cx="78" cy="72" r="12" fill="white" opacity="0.9"/>
-              <path d="M73 72l3.5 3.5 7-7" stroke="#1a7a6d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              {hasExistingProfile ? (
+                <>
+                  {/* Pencil icon for edit mode */}
+                  <circle cx="78" cy="72" r="12" fill="white" opacity="0.9"/>
+                  <path d="M74 76l8-8 2 2-8 8-3 1 1-3z" stroke="#1a7a6d" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                </>
+              ) : (
+                <>
+                  {/* Checkmark for create mode */}
+                  <circle cx="78" cy="72" r="12" fill="white" opacity="0.9"/>
+                  <path d="M73 72l3.5 3.5 7-7" stroke="#1a7a6d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </>
+              )}
             </svg>
           </div>
           <h2 className="text-3xl font-bold text-white mb-4">
-            Completa tu perfil
+            {hasExistingProfile ? "Edita tu perfil" : "Completa tu perfil"}
           </h2>
           <p className="text-lg text-white opacity-80 leading-relaxed">
-            Queremos conocerte mejor para ofrecerte la mejor experiencia posible.
+            {hasExistingProfile
+              ? "Actualiza tus datos para que podamos ayudarte mejor."
+              : "Queremos conocerte mejor para ofrecerte la mejor experiencia posible."}
           </p>
         </div>
       </div>
@@ -158,10 +204,10 @@ function ProfileContent() {
               <span className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>MenteViva</span>
             </Link>
             <h1 className="text-2xl md:text-3xl font-bold mb-2" style={{ color: 'var(--color-text-primary)' }}>
-              Cuéntanos sobre ti
+              {hasExistingProfile ? "Tu perfil" : "Cuéntanos sobre ti"}
             </h1>
             <p className="text-base" style={{ color: 'var(--color-text-secondary)' }}>
-              Solo necesitamos unos datos para empezar
+              {hasExistingProfile ? "Modifica tus datos cuando quieras" : "Solo necesitamos unos datos para empezar"}
             </p>
           </div>
 
@@ -273,10 +319,22 @@ function ProfileContent() {
                     Guardando...
                   </span>
                 ) : (
-                  "Empezar a usar MenteViva"
+                  hasExistingProfile ? "Guardar cambios" : "Empezar a usar MenteViva"
                 )}
               </button>
             </form>
+
+            {hasExistingProfile && (
+              <div className="mt-5 pt-5 text-center" style={{ borderTop: '1px solid var(--color-border)' }}>
+                <Link
+                  href="/chatbot"
+                  className="font-medium text-base underline underline-offset-2"
+                  style={{ color: 'var(--color-primary)' }}
+                >
+                  Volver al chat
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>
