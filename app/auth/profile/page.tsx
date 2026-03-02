@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { getUserProfile } from "@/lib/profile";
+import { getUserProfile, getTutorProfile } from "@/lib/profile";
 
 function LogoIcon({ className = "w-10 h-10" }: { className?: string }) {
   return (
@@ -42,6 +42,17 @@ function ProfileContent() {
   const [checkingProfile, setCheckingProfile] = useState(true);
   const [hasExistingProfile, setHasExistingProfile] = useState(false);
 
+  // Profile mode toggle
+  const [profileMode, setProfileMode] = useState<"user" | "tutor">("user");
+
+  // Tutor profile fields
+  const [tutorName, setTutorName] = useState("");
+  const [tutorNumber, setTutorNumber] = useState("");
+  const [tutorDescription, setTutorDescription] = useState("");
+  const [tutorInstagram, setTutorInstagram] = useState("");
+  const [tutorFacebook, setTutorFacebook] = useState("");
+  const [hasExistingTutorProfile, setHasExistingTutorProfile] = useState(false);
+
   // Auth guard + profile check
   useEffect(() => {
     if (authLoading) return;
@@ -71,6 +82,17 @@ function ProfileContent() {
         setCheckingProfile(false);
       }
     });
+
+    getTutorProfile(user.id).then((tutorProfile) => {
+      if (tutorProfile) {
+        setTutorName(tutorProfile.name);
+        setTutorNumber(tutorProfile.number || "");
+        setTutorDescription(tutorProfile.description || "");
+        setTutorInstagram(tutorProfile.instagram || "");
+        setTutorFacebook(tutorProfile.facebook || "");
+        setHasExistingTutorProfile(true);
+      }
+    });
   }, [user, authLoading, router, isEditMode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,47 +100,84 @@ function ProfileContent() {
     setError("");
     setLoading(true);
 
-    if (!name.trim()) {
-      setError("Por favor, escribe tu nombre.");
-      setLoading(false);
-      return;
-    }
-
     if (!user) {
       setError("No se ha encontrado tu sesión. Por favor, inicia sesión de nuevo.");
       setLoading(false);
       return;
     }
 
-    const profileData = {
-      id: user.id,
-      name: name.trim(),
-      number: number.trim() || null,
-      description: description.trim() || null,
-      interests: interests.trim() || null,
-      city: city.trim() || null,
-    };
-
     try {
       let dbError;
 
-      if (hasExistingProfile) {
-        const { error: updateError } = await supabase
-          .from("user_profile")
-          .update({
-            name: profileData.name,
-            number: profileData.number,
-            description: profileData.description,
-            interests: profileData.interests,
-            city: profileData.city,
-          })
-          .eq("id", user.id);
-        dbError = updateError;
+      if (profileMode === "tutor") {
+        if (!tutorName.trim()) {
+          setError("Por favor, escribe el nombre del tutor.");
+          setLoading(false);
+          return;
+        }
+
+        const tutorData = {
+          id: user.id,
+          name: tutorName.trim(),
+          number: tutorNumber.trim() || null,
+          description: tutorDescription.trim() || null,
+          instagram: tutorInstagram.trim() || null,
+          facebook: tutorFacebook.trim() || null,
+        };
+
+        if (hasExistingTutorProfile) {
+          const { error: updateError } = await supabase
+            .from("tutor_profile")
+            .update({
+              name: tutorData.name,
+              number: tutorData.number,
+              description: tutorData.description,
+              instagram: tutorData.instagram,
+              facebook: tutorData.facebook,
+            })
+            .eq("id", user.id);
+          dbError = updateError;
+        } else {
+          const { error: insertError } = await supabase
+            .from("tutor_profile")
+            .insert(tutorData);
+          dbError = insertError;
+        }
       } else {
-        const { error: insertError } = await supabase
-          .from("user_profile")
-          .insert(profileData);
-        dbError = insertError;
+        // User profile mode
+        if (!name.trim()) {
+          setError("Por favor, escribe tu nombre.");
+          setLoading(false);
+          return;
+        }
+
+        const profileData = {
+          id: user.id,
+          name: name.trim(),
+          number: number.trim() || null,
+          description: description.trim() || null,
+          interests: interests.trim() || null,
+          city: city.trim() || null,
+        };
+
+        if (hasExistingProfile) {
+          const { error: updateError } = await supabase
+            .from("user_profile")
+            .update({
+              name: profileData.name,
+              number: profileData.number,
+              description: profileData.description,
+              interests: profileData.interests,
+              city: profileData.city,
+            })
+            .eq("id", user.id);
+          dbError = updateError;
+        } else {
+          const { error: insertError } = await supabase
+            .from("user_profile")
+            .insert(profileData);
+          dbError = insertError;
+        }
       }
 
       if (dbError) {
@@ -213,6 +272,31 @@ function ProfileContent() {
 
           {/* Form Card */}
           <div className="card" style={{ padding: '2rem' }}>
+            <div className="flex rounded-xl overflow-hidden mb-6" style={{ border: '1px solid var(--color-border)' }}>
+              <button
+                type="button"
+                onClick={() => setProfileMode("user")}
+                className="flex-1 py-3 text-sm font-semibold transition-all duration-200"
+                style={{
+                  background: profileMode === "user" ? 'var(--color-primary)' : 'transparent',
+                  color: profileMode === "user" ? 'white' : 'var(--color-text-secondary)',
+                }}
+              >
+                Usuario
+              </button>
+              <button
+                type="button"
+                onClick={() => setProfileMode("tutor")}
+                className="flex-1 py-3 text-sm font-semibold transition-all duration-200"
+                style={{
+                  background: profileMode === "tutor" ? 'var(--color-primary)' : 'transparent',
+                  color: profileMode === "tutor" ? 'white' : 'var(--color-text-secondary)',
+                }}
+              >
+                Tutor
+              </button>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-5">
               {error && (
                 <div
@@ -229,81 +313,53 @@ function ProfileContent() {
                 </div>
               )}
 
-              <div>
-                <label htmlFor="name" className="label">
-                  Nombre *
-                </label>
-                <input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="input"
-                  placeholder="¿Cómo te llamas?"
-                  required
-                  autoComplete="name"
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label htmlFor="number" className="label">
-                  Teléfono
-                </label>
-                <input
-                  id="number"
-                  type="tel"
-                  value={number}
-                  onChange={(e) => setNumber(e.target.value)}
-                  className="input"
-                  placeholder="Ej: 612 345 678"
-                  autoComplete="tel"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="description" className="label">
-                  Cuéntanos sobre ti
-                </label>
-                <textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="input"
-                  placeholder="Ej: Soy jubilado, me gusta pasear y leer..."
-                  rows={3}
-                  style={{ resize: 'vertical', minHeight: '80px' }}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="interests" className="label">
-                  Intereses
-                </label>
-                <input
-                  id="interests"
-                  type="text"
-                  value={interests}
-                  onChange={(e) => setInterests(e.target.value)}
-                  className="input"
-                  placeholder="Ej: Cocina, jardinería, música, viajes..."
-                />
-              </div>
-
-              <div>
-                <label htmlFor="city" className="label">
-                  Ciudad
-                </label>
-                <input
-                  id="city"
-                  type="text"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="input"
-                  placeholder="¿Dónde vives?"
-                  autoComplete="address-level2"
-                />
-              </div>
+              {profileMode === "tutor" ? (
+                <>
+                  <div>
+                    <label htmlFor="tutorName" className="label">Nombre del tutor *</label>
+                    <input id="tutorName" type="text" value={tutorName} onChange={(e) => setTutorName(e.target.value)} className="input" placeholder="Nombre del tutor" required autoComplete="name" autoFocus />
+                  </div>
+                  <div>
+                    <label htmlFor="tutorNumber" className="label">Teléfono del tutor</label>
+                    <input id="tutorNumber" type="tel" value={tutorNumber} onChange={(e) => setTutorNumber(e.target.value)} className="input" placeholder="Ej: 612 345 678" autoComplete="tel" />
+                  </div>
+                  <div>
+                    <label htmlFor="tutorDescription" className="label">Descripción</label>
+                    <textarea id="tutorDescription" value={tutorDescription} onChange={(e) => setTutorDescription(e.target.value)} className="input" placeholder="Información sobre el tutor..." rows={3} style={{ resize: 'vertical', minHeight: '80px' }} />
+                  </div>
+                  <div>
+                    <label htmlFor="tutorInstagram" className="label">Instagram</label>
+                    <input id="tutorInstagram" type="text" value={tutorInstagram} onChange={(e) => setTutorInstagram(e.target.value)} className="input" placeholder="@usuario" />
+                  </div>
+                  <div>
+                    <label htmlFor="tutorFacebook" className="label">Facebook</label>
+                    <input id="tutorFacebook" type="text" value={tutorFacebook} onChange={(e) => setTutorFacebook(e.target.value)} className="input" placeholder="Enlace o nombre de perfil" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label htmlFor="name" className="label">Nombre *</label>
+                    <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} className="input" placeholder="¿Cómo te llamas?" required autoComplete="name" autoFocus />
+                  </div>
+                  <div>
+                    <label htmlFor="number" className="label">Teléfono</label>
+                    <input id="number" type="tel" value={number} onChange={(e) => setNumber(e.target.value)} className="input" placeholder="Ej: 612 345 678" autoComplete="tel" />
+                  </div>
+                  <div>
+                    <label htmlFor="description" className="label">Cuéntanos sobre ti</label>
+                    <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="input" placeholder="Ej: Soy jubilado, me gusta pasear y leer..." rows={3} style={{ resize: 'vertical', minHeight: '80px' }} />
+                  </div>
+                  <div>
+                    <label htmlFor="interests" className="label">Intereses</label>
+                    <input id="interests" type="text" value={interests} onChange={(e) => setInterests(e.target.value)} className="input" placeholder="Ej: Cocina, jardinería, música, viajes..." />
+                  </div>
+                  <div>
+                    <label htmlFor="city" className="label">Ciudad</label>
+                    <input id="city" type="text" value={city} onChange={(e) => setCity(e.target.value)} className="input" placeholder="¿Dónde vives?" autoComplete="address-level2" />
+                  </div>
+                </>
+              )}
 
               <button
                 type="submit"
