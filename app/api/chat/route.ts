@@ -21,7 +21,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, history, user_profile } = body as {
+    const { message, history, user_profile, tutor_profile } = body as {
       message: string;
       history: ChatMessage[];
       user_profile?: {
@@ -30,6 +30,13 @@ export async function POST(request: NextRequest) {
         description: string | null;
         interests: string | null;
         city: string | null;
+      } | null;
+      tutor_profile?: {
+        name: string;
+        number: string | null;
+        description: string | null;
+        instagram: string | null;
+        facebook: string | null;
       } | null;
     };
 
@@ -69,6 +76,7 @@ export async function POST(request: NextRequest) {
           message,
           history,
           user_profile: user_profile || null,
+          tutor_profile: tutor_profile || null,
         }),
         signal: controller.signal,
       });
