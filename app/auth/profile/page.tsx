@@ -336,20 +336,20 @@ function ProfileContent() {
                     <textarea id="tutorDescription" value={tutorDescription} onChange={(e) => setTutorDescription(e.target.value)} className="input" placeholder="Información sobre el tutor..." rows={3} style={{ resize: 'vertical', minHeight: '80px' }} />
                   </div>
                   <div>
-                    <label htmlFor="tutorInstagram" className="label">Instagram</label>
-                    <input id="tutorInstagram" type="text" value={tutorInstagram} onChange={(e) => setTutorInstagram(e.target.value)} className="input" placeholder="@usuario" />
-                  </div>
-                  <div>
-                    <label htmlFor="tutorFacebook" className="label">Facebook</label>
-                    <input id="tutorFacebook" type="text" value={tutorFacebook} onChange={(e) => setTutorFacebook(e.target.value)} className="input" placeholder="Enlace o nombre de perfil" />
-                  </div>
-                  <div>
                     <label htmlFor="tutorRelationship" className="label">Relación con el usuario</label>
                     <input id="tutorRelationship" type="text" value={tutorRelationship} onChange={(e) => setTutorRelationship(e.target.value)} className="input" placeholder="Ej: Hijo/a, cuidador/a, vecino/a..." />
                   </div>
                   <div>
                     <label htmlFor="tutorFactors" className="label">Factores a tener en cuenta</label>
                     <textarea id="tutorFactors" value={tutorFactors} onChange={(e) => setTutorFactors(e.target.value)} className="input" placeholder="Ej: Problemas de movilidad, medicación..." rows={3} style={{ resize: 'vertical', minHeight: '80px' }} />
+                  </div>
+                  <div>
+                    <label htmlFor="tutorInstagram" className="label">Instagram</label>
+                    <input id="tutorInstagram" type="text" value={tutorInstagram} onChange={(e) => setTutorInstagram(e.target.value)} className="input" placeholder="@usuario" />
+                  </div>
+                  <div>
+                    <label htmlFor="tutorFacebook" className="label">Facebook</label>
+                    <input id="tutorFacebook" type="text" value={tutorFacebook} onChange={(e) => setTutorFacebook(e.target.value)} className="input" placeholder="Enlace o nombre de perfil" />
                   </div>
                 </>
               ) : (
