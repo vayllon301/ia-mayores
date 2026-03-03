@@ -37,6 +37,8 @@ export async function POST(request: NextRequest) {
         description: string | null;
         instagram: string | null;
         facebook: string | null;
+        relationship: string | null;
+        factors: string | null;
       } | null;
     };
 

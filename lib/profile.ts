@@ -37,6 +37,8 @@ export interface TutorProfile {
   description: string | null
   instagram: string | null
   facebook: string | null
+  relationship: string | null
+  factors: string | null
 }
 
 export async function getTutorProfile(userId: string): Promise<TutorProfile | null> {

@@ -366,6 +366,8 @@ export default function ChatbotPage() {
             description: tutorProfile.description,
             instagram: tutorProfile.instagram,
             facebook: tutorProfile.facebook,
+            relationship: tutorProfile.relationship,
+            factors: tutorProfile.factors,
           } : null,
         }),
       });

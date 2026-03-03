@@ -51,6 +51,8 @@ function ProfileContent() {
   const [tutorDescription, setTutorDescription] = useState("");
   const [tutorInstagram, setTutorInstagram] = useState("");
   const [tutorFacebook, setTutorFacebook] = useState("");
+  const [tutorRelationship, setTutorRelationship] = useState("");
+  const [tutorFactors, setTutorFactors] = useState("");
   const [hasExistingTutorProfile, setHasExistingTutorProfile] = useState(false);
 
   // Auth guard + profile check
@@ -90,6 +92,8 @@ function ProfileContent() {
         setTutorDescription(tutorProfile.description || "");
         setTutorInstagram(tutorProfile.instagram || "");
         setTutorFacebook(tutorProfile.facebook || "");
+        setTutorRelationship(tutorProfile.relationship || "");
+        setTutorFactors(tutorProfile.factors || "");
         setHasExistingTutorProfile(true);
       }
     });
@@ -123,6 +127,8 @@ function ProfileContent() {
           description: tutorDescription.trim() || null,
           instagram: tutorInstagram.trim() || null,
           facebook: tutorFacebook.trim() || null,
+          relationship: tutorRelationship.trim() || null,
+          factors: tutorFactors.trim() || null,
         };
 
         if (hasExistingTutorProfile) {
@@ -134,6 +140,8 @@ function ProfileContent() {
               description: tutorData.description,
               instagram: tutorData.instagram,
               facebook: tutorData.facebook,
+              relationship: tutorData.relationship,
+              factors: tutorData.factors,
             })
             .eq("id", user.id);
           dbError = updateError;
@@ -334,6 +342,14 @@ function ProfileContent() {
                   <div>
                     <label htmlFor="tutorFacebook" className="label">Facebook</label>
                     <input id="tutorFacebook" type="text" value={tutorFacebook} onChange={(e) => setTutorFacebook(e.target.value)} className="input" placeholder="Enlace o nombre de perfil" />
+                  </div>
+                  <div>
+                    <label htmlFor="tutorRelationship" className="label">Relación con el usuario</label>
+                    <input id="tutorRelationship" type="text" value={tutorRelationship} onChange={(e) => setTutorRelationship(e.target.value)} className="input" placeholder="Ej: Hijo/a, cuidador/a, vecino/a..." />
+                  </div>
+                  <div>
+                    <label htmlFor="tutorFactors" className="label">Factores a tener en cuenta</label>
+                    <textarea id="tutorFactors" value={tutorFactors} onChange={(e) => setTutorFactors(e.target.value)} className="input" placeholder="Ej: Problemas de movilidad, medicación..." rows={3} style={{ resize: 'vertical', minHeight: '80px' }} />
                   </div>
                 </>
               ) : (
