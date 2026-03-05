@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
@@ -54,6 +54,42 @@ function ProfileContent() {
   const [tutorRelationship, setTutorRelationship] = useState("");
   const [tutorFactors, setTutorFactors] = useState("");
   const [hasExistingTutorProfile, setHasExistingTutorProfile] = useState(false);
+
+  // Voice recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTarget, setRecordingTarget] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  const startVoiceInput = async (target: string, setter: (v: string) => void, current: string) => {
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      chunksRef.current = [];
+      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        setIsRecording(false);
+        setRecordingTarget(null);
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const formData = new FormData();
+        formData.append("audio", blob, "recording.webm");
+        try {
+          const res = await fetch("/api/voice", { method: "POST", body: formData });
+          const data = await res.json();
+          if (data.text) setter(current ? current + " " + data.text : data.text);
+        } catch { /* ignore transcription errors silently */ }
+      };
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTarget(target);
+    } catch { /* microphone permission denied */ }
+  };
 
   // Auth guard + profile check
   useEffect(() => {
@@ -332,7 +368,16 @@ function ProfileContent() {
                     <input id="tutorNumber" type="tel" value={tutorNumber} onChange={(e) => setTutorNumber(e.target.value)} className="input" placeholder="Ej: 612 345 678" autoComplete="tel" />
                   </div>
                   <div>
-                    <label htmlFor="tutorDescription" className="label">Descripción</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label htmlFor="tutorDescription" className="label" style={{ marginBottom: 0 }}>Descripción</label>
+                      <button type="button" onClick={() => startVoiceInput("tutorDescription", setTutorDescription, tutorDescription)} aria-label={isRecording && recordingTarget === "tutorDescription" ? "Detener grabación" : "Dictar descripción"} className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg transition-all" style={{ color: isRecording && recordingTarget === "tutorDescription" ? 'white' : 'var(--color-primary)', background: isRecording && recordingTarget === "tutorDescription" ? 'var(--color-primary)' : 'var(--color-bg-secondary)', border: '1px solid var(--color-primary)' }}>
+                        {isRecording && recordingTarget === "tutorDescription" ? (
+                          <><span className="w-2 h-2 rounded-full bg-white animate-pulse inline-block" />Grabando...</>
+                        ) : (
+                          <><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="13" rx="3" fill="currentColor"/><path d="M5 10a7 7 0 0014 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="12" y1="19" x2="12" y2="23" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>Dictar</>
+                        )}
+                      </button>
+                    </div>
                     <textarea id="tutorDescription" value={tutorDescription} onChange={(e) => setTutorDescription(e.target.value)} className="input" placeholder="Información sobre el tutor..." rows={3} style={{ resize: 'vertical', minHeight: '80px' }} />
                   </div>
                   <div>
@@ -340,7 +385,16 @@ function ProfileContent() {
                     <input id="tutorRelationship" type="text" value={tutorRelationship} onChange={(e) => setTutorRelationship(e.target.value)} className="input" placeholder="Ej: Hijo/a, cuidador/a, vecino/a..." />
                   </div>
                   <div>
-                    <label htmlFor="tutorFactors" className="label">Factores a tener en cuenta</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label htmlFor="tutorFactors" className="label" style={{ marginBottom: 0 }}>Factores a tener en cuenta</label>
+                      <button type="button" onClick={() => startVoiceInput("tutorFactors", setTutorFactors, tutorFactors)} aria-label={isRecording && recordingTarget === "tutorFactors" ? "Detener grabación" : "Dictar factores"} className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg transition-all" style={{ color: isRecording && recordingTarget === "tutorFactors" ? 'white' : 'var(--color-primary)', background: isRecording && recordingTarget === "tutorFactors" ? 'var(--color-primary)' : 'var(--color-bg-secondary)', border: '1px solid var(--color-primary)' }}>
+                        {isRecording && recordingTarget === "tutorFactors" ? (
+                          <><span className="w-2 h-2 rounded-full bg-white animate-pulse inline-block" />Grabando...</>
+                        ) : (
+                          <><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="13" rx="3" fill="currentColor"/><path d="M5 10a7 7 0 0014 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="12" y1="19" x2="12" y2="23" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>Dictar</>
+                        )}
+                      </button>
+                    </div>
                     <textarea id="tutorFactors" value={tutorFactors} onChange={(e) => setTutorFactors(e.target.value)} className="input" placeholder="Ej: Problemas de movilidad, medicación..." rows={3} style={{ resize: 'vertical', minHeight: '80px' }} />
                   </div>
                   <div>
@@ -363,7 +417,16 @@ function ProfileContent() {
                     <input id="number" type="tel" value={number} onChange={(e) => setNumber(e.target.value)} className="input" placeholder="Ej: 612 345 678" autoComplete="tel" />
                   </div>
                   <div>
-                    <label htmlFor="description" className="label">Cuéntanos sobre ti</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label htmlFor="description" className="label" style={{ marginBottom: 0 }}>Cuéntanos sobre ti</label>
+                      <button type="button" onClick={() => startVoiceInput("description", setDescription, description)} aria-label={isRecording && recordingTarget === "description" ? "Detener grabación" : "Dictar descripción"} className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg transition-all" style={{ color: isRecording && recordingTarget === "description" ? 'white' : 'var(--color-primary)', background: isRecording && recordingTarget === "description" ? 'var(--color-primary)' : 'var(--color-bg-secondary)', border: '1px solid var(--color-primary)' }}>
+                        {isRecording && recordingTarget === "description" ? (
+                          <><span className="w-2 h-2 rounded-full bg-white animate-pulse inline-block" />Grabando...</>
+                        ) : (
+                          <><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="13" rx="3" fill="currentColor"/><path d="M5 10a7 7 0 0014 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="12" y1="19" x2="12" y2="23" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>Dictar</>
+                        )}
+                      </button>
+                    </div>
                     <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="input" placeholder="Ej: Soy jubilado, me gusta pasear y leer..." rows={3} style={{ resize: 'vertical', minHeight: '80px' }} />
                   </div>
                   <div>
