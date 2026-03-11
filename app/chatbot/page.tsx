@@ -119,6 +119,7 @@ export default function ChatbotPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
+  const [voicePhase, setVoicePhase] = useState<"idle" | "transcribing" | "thinking" | "speaking">("idle");
   const [alertStatus, setAlertStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [tutorProfile, setTutorProfile] = useState<TutorProfile | null>(null);
@@ -266,64 +267,94 @@ export default function ChatbotPage() {
     setIsLoading(true);
 
     try {
+      // --- Phase 1: Transcribe audio (fast, ~1-2s) ---
+      setVoicePhase("transcribing");
       const formData = new FormData();
       formData.append("audio", audioBlob, "voice-message.webm");
 
-      const response = await fetch("/api/voice", {
+      const transcribeResponse = await fetch("/api/voice/transcribe", {
         method: "POST",
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      if (!transcribeResponse.ok) {
+        throw new Error(`Error transcribiendo: ${transcribeResponse.status}`);
       }
 
-      const data = await response.json();
-      const transcribedText = data.text || data.transcription || "";
-      const chatbotResponseText = data.response || "";
+      const transcribeData = await transcribeResponse.json();
+      const transcribedText = transcribeData.text || "";
 
-      if (transcribedText) {
-        const userMessage: Message = {
-          id: Date.now().toString(),
-          role: "user",
-          content: `🎤 ${transcribedText}`,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, userMessage]);
-
-        if (chatbotResponseText && chatbotResponseText.trim()) {
-          const assistantMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            role: "assistant",
-            content: `🔊 ${chatbotResponseText}`,
-            timestamp: new Date(),
-          };
-          setMessages((prev) => [...prev, assistantMessage]);
-
-          if (data.audio && data.audioType) {
-            try {
-              const audioBytes = Uint8Array.from(atob(data.audio), c => c.charCodeAt(0));
-              const audioBlob = new Blob([audioBytes], { type: data.audioType });
-              const audioUrl = URL.createObjectURL(audioBlob);
-
-              const audio = new Audio(audioUrl);
-              audio.play().catch((err) => {
-                console.error("Error playing audio:", err);
-              });
-
-              audio.onended = () => {
-                URL.revokeObjectURL(audioUrl);
-              };
-            } catch (audioError) {
-              console.error("Error processing audio response:", audioError);
-            }
-          }
-        } else {
-          await sendTextMessage(transcribedText);
-        }
-      } else {
+      if (!transcribedText) {
         throw new Error("No se pudo transcribir el audio");
       }
+
+      // Show user message immediately after transcription
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        role: "user",
+        content: transcribedText,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, userMessage]);
+
+      // --- Phase 2: Get chatbot response (with full context) ---
+      setVoicePhase("thinking");
+      const chatResponse = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: transcribedText,
+          history: messages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+          user_profile: profile ? {
+            name: profile.name,
+            number: profile.number,
+            description: profile.description,
+            interests: profile.interests,
+            city: profile.city,
+          } : null,
+        }),
+      });
+
+      if (!chatResponse.ok) {
+        throw new Error(`Error del chatbot: ${chatResponse.status}`);
+      }
+
+      const chatData = await chatResponse.json();
+      const chatbotResponseText = chatData.response || "";
+
+      // Show chatbot response immediately
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: chatbotResponseText,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      // --- Phase 3: Generate and play audio (in background, non-blocking) ---
+      setVoicePhase("speaking");
+      fetch("/api/voice/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: chatbotResponseText }),
+      })
+        .then((res) => res.ok ? res.json() : null)
+        .then((ttsData) => {
+          if (ttsData?.audio && ttsData?.audioType) {
+            const audioBytes = Uint8Array.from(atob(ttsData.audio), c => c.charCodeAt(0));
+            const ttsBlob = new Blob([audioBytes], { type: ttsData.audioType });
+            const audioUrl = URL.createObjectURL(ttsBlob);
+            const audio = new Audio(audioUrl);
+            audio.play().catch((err) => console.error("Error playing audio:", err));
+            audio.onended = () => URL.revokeObjectURL(audioUrl);
+          }
+        })
+        .catch((err) => console.error("Error generating TTS:", err))
+        .finally(() => setVoicePhase("idle"));
+
     } catch (error) {
       console.error("Error al procesar el mensaje de voz:", error);
       const errorMessage: Message = {
@@ -335,6 +366,7 @@ export default function ChatbotPage() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
+      setVoicePhase("idle");
     } finally {
       setIsLoading(false);
     }
@@ -676,8 +708,8 @@ export default function ChatbotPage() {
               </div>
             ))}
 
-            {/* Typing indicator */}
-            {isLoading && (
+            {/* Typing / voice phase indicator */}
+            {(isLoading || voicePhase !== "idle") && (
               <div className="flex gap-3 justify-start animate-fade-in">
                 <div className="shrink-0 mt-1">
                   <BotAvatar />
@@ -687,7 +719,12 @@ export default function ChatbotPage() {
                     MenteViva
                   </p>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Pensando</span>
+                    <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                      {voicePhase === "transcribing" ? "Escuchando" :
+                       voicePhase === "thinking" ? "Pensando" :
+                       voicePhase === "speaking" ? "Preparando audio" :
+                       "Pensando"}
+                    </span>
                     <span className="flex gap-1">
                       <span
                         className="w-2 h-2 rounded-full"
