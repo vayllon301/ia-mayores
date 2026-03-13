@@ -120,6 +120,7 @@ export default function ChatbotPage() {
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const [voicePhase, setVoicePhase] = useState<"idle" | "transcribing" | "thinking" | "speaking">("idle");
+  const [isStreaming, setIsStreaming] = useState(false);
   const [alertStatus, setAlertStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [tutorProfile, setTutorProfile] = useState<TutorProfile | null>(null);
@@ -297,8 +298,16 @@ export default function ChatbotPage() {
       };
       setMessages((prev) => [...prev, userMessage]);
 
-      // --- Phase 2: Get chatbot response (with full context) ---
+      // --- Phase 2: Get chatbot response (with full context, streamed) ---
       setVoicePhase("thinking");
+      const voiceAssistantId = (Date.now() + 1).toString();
+
+      // Add empty assistant message for streaming
+      setMessages((prev) => [
+        ...prev,
+        { id: voiceAssistantId, role: "assistant", content: "", timestamp: new Date() },
+      ]);
+
       const chatResponse = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -322,17 +331,37 @@ export default function ChatbotPage() {
         throw new Error(`Error del chatbot: ${chatResponse.status}`);
       }
 
-      const chatData = await chatResponse.json();
-      const chatbotResponseText = chatData.response || "";
-
-      // Show chatbot response immediately
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: chatbotResponseText,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
+      let chatbotResponseText = "";
+      const chatReader = chatResponse.body?.getReader();
+      if (chatReader) {
+        const chatDecoder = new TextDecoder();
+        let chatBuffer = "";
+        while (true) {
+          const { done, value } = await chatReader.read();
+          if (done) break;
+          chatBuffer += chatDecoder.decode(value, { stream: true });
+          const chatLines = chatBuffer.split("\n");
+          chatBuffer = chatLines.pop() || "";
+          for (const line of chatLines) {
+            const trimmed = line.trim();
+            if (!trimmed || !trimmed.startsWith("data: ")) continue;
+            const data = trimmed.slice(6);
+            if (data === "[DONE]") continue;
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.token) {
+                chatbotResponseText += parsed.token;
+                const captured = chatbotResponseText;
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === voiceAssistantId ? { ...m, content: captured } : m
+                  )
+                );
+              }
+            } catch (_) { /* skip */ }
+          }
+        }
+      }
 
       // --- Phase 3: Generate and play audio (in background, non-blocking) ---
       setVoicePhase("speaking");
@@ -373,6 +402,19 @@ export default function ChatbotPage() {
   };
 
   const sendTextMessage = async (text: string) => {
+    const assistantMessageId = (Date.now() + 1).toString();
+
+    // Add an empty assistant message that we'll fill with streamed tokens
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: assistantMessageId,
+        role: "assistant",
+        content: "",
+        timestamp: new Date(),
+      },
+    ]);
+
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -408,27 +450,82 @@ export default function ChatbotPage() {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error("No se pudo leer la respuesta del servidor");
+      }
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: data.response || data.message || "No hay respuesta del servidor",
-        timestamp: new Date(),
-      };
+      const decoder = new TextDecoder();
+      let buffer = "";
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Process complete SSE lines from the buffer
+        const lines = buffer.split("\n");
+        // Keep the last potentially incomplete line in the buffer
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith("data: ")) continue;
+
+          const data = trimmed.slice(6); // Remove "data: " prefix
+          if (data === "[DONE]") continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.token) {
+              setIsStreaming(true);
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMessageId
+                    ? { ...m, content: m.content + parsed.token }
+                    : m
+                )
+              );
+            }
+            if (parsed.error) {
+              throw new Error(parsed.error);
+            }
+          } catch (parseErr) {
+            // Skip malformed JSON lines
+            if (parseErr instanceof Error && parseErr.message !== data) {
+              // Re-throw actual errors from backend
+              if ((parseErr as Error).message.startsWith("Error")) throw parseErr;
+            }
+          }
+        }
+      }
+
+      // If the message ended up empty, show a fallback
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantMessageId && !m.content
+            ? { ...m, content: "No hay respuesta del servidor" }
+            : m
+        )
+      );
+      setIsStreaming(false);
     } catch (error) {
       console.error("Error al conectar con el servidor:", error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: error instanceof Error
-          ? `Error: ${error.message}`
-          : "Lo siento, no pude conectar con el servidor. Intenta de nuevo.",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      setIsStreaming(false);
+      // Update the placeholder message with the error instead of adding a new one
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantMessageId
+            ? {
+                ...m,
+                content: error instanceof Error
+                  ? `Error: ${error.message}`
+                  : "Lo siento, no pude conectar con el servidor. Intenta de nuevo.",
+              }
+            : m
+        )
+      );
     }
   };
 
@@ -708,8 +805,8 @@ export default function ChatbotPage() {
               </div>
             ))}
 
-            {/* Typing / voice phase indicator */}
-            {(isLoading || voicePhase !== "idle") && (
+            {/* Typing / voice phase indicator (hidden once tokens start streaming) */}
+            {((isLoading && !isStreaming) || voicePhase !== "idle") && (
               <div className="flex gap-3 justify-start animate-fade-in">
                 <div className="shrink-0 mt-1">
                   <BotAvatar />

@@ -60,19 +60,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-   
-    const chatUrl = `${backendUrl}/chat`;
+    const streamUrl = `${backendUrl}/chat/stream`;
 
-    // Conectar con el backend FastAPI
+    // Conectar con el backend FastAPI (SSE streaming)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
 
     try {
-      const backendResponse = await fetch(chatUrl, {
+      const backendResponse = await fetch(streamUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Accept: "application/json",
+          Accept: "text/event-stream",
         },
         body: JSON.stringify({
           message,
@@ -98,9 +97,22 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const data = await backendResponse.json();
-      return NextResponse.json({
-        response: data.response || data.message || data,
+      // Forward the SSE stream from backend to client
+      const stream = backendResponse.body;
+      if (!stream) {
+        return NextResponse.json(
+          { error: "No se recibió stream del backend" },
+          { status: 500 }
+        );
+      }
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+          "X-Accel-Buffering": "no",
+        },
       });
     } catch (fetchError) {
       clearTimeout(timeoutId);
@@ -123,7 +135,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: userMessage,
-          details: `URL intentada: ${chatUrl}. Error: ${errorMessage}`,
+          details: `URL intentada: ${streamUrl}. Error: ${errorMessage}`,
         },
         { status: 500 }
       );
