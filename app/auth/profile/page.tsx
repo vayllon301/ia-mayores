@@ -55,6 +55,12 @@ function ProfileContent() {
   const [tutorFactors, setTutorFactors] = useState("");
   const [hasExistingTutorProfile, setHasExistingTutorProfile] = useState(false);
 
+  // Instagram linking state
+  const [igLinkMode, setIgLinkMode] = useState(false);
+  const [igInput, setIgInput] = useState("");
+  const [igLinking, setIgLinking] = useState(false);
+  const [igError, setIgError] = useState("");
+
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTarget, setRecordingTarget] = useState<string | null>(null);
@@ -89,6 +95,42 @@ function ProfileContent() {
       setIsRecording(true);
       setRecordingTarget(target);
     } catch { /* microphone permission denied */ }
+  };
+
+  const handleInstagramLink = async () => {
+    if (!igInput.trim()) {
+      setIgError("Introduce un nombre de usuario o enlace de Instagram.");
+      return;
+    }
+    setIgLinking(true);
+    setIgError("");
+    try {
+      const res = await fetch("/api/tutor/instagram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: igInput.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setIgError(data.error || "Error al vincular Instagram.");
+        setIgLinking(false);
+        return;
+      }
+      setTutorInstagram(data.username);
+      setIgLinkMode(false);
+      setIgInput("");
+      setIgError("");
+    } catch {
+      setIgError("No se pudo conectar con el servidor.");
+    }
+    setIgLinking(false);
+  };
+
+  const handleInstagramUnlink = () => {
+    setTutorInstagram("");
+    setIgLinkMode(false);
+    setIgInput("");
+    setIgError("");
   };
 
   // Auth guard + profile check
@@ -398,8 +440,80 @@ function ProfileContent() {
                     <textarea id="tutorFactors" value={tutorFactors} onChange={(e) => setTutorFactors(e.target.value)} className="input" placeholder="Ej: Problemas de movilidad, medicación..." rows={3} style={{ resize: 'vertical', minHeight: '80px' }} />
                   </div>
                   <div>
-                    <label htmlFor="tutorInstagram" className="label">Instagram</label>
-                    <input id="tutorInstagram" type="text" value={tutorInstagram} onChange={(e) => setTutorInstagram(e.target.value)} className="input" placeholder="@usuario" />
+                    <label className="label">Instagram</label>
+                    {tutorInstagram ? (
+                      <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)' }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                          <rect x="2" y="2" width="20" height="20" rx="6" stroke="#E4405F" strokeWidth="2" fill="none"/>
+                          <circle cx="12" cy="12" r="5" stroke="#E4405F" strokeWidth="2" fill="none"/>
+                          <circle cx="17.5" cy="6.5" r="1.5" fill="#E4405F"/>
+                        </svg>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>@{tutorInstagram}</p>
+                          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Cuenta vinculada</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleInstagramUnlink}
+                          className="text-xs font-medium px-3 py-1.5 rounded-lg transition-all"
+                          style={{ color: 'var(--color-error)', background: '#fef2f2', border: '1px solid #fecaca' }}
+                        >
+                          Desvincular
+                        </button>
+                      </div>
+                    ) : igLinkMode ? (
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={igInput}
+                            onChange={(e) => { setIgInput(e.target.value); setIgError(""); }}
+                            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleInstagramLink(); } }}
+                            className="input flex-1"
+                            placeholder="@usuario o enlace de Instagram"
+                            autoFocus
+                            disabled={igLinking}
+                          />
+                          <button
+                            type="button"
+                            onClick={handleInstagramLink}
+                            disabled={igLinking}
+                            className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                            style={{ background: 'var(--color-primary)', color: 'white', opacity: igLinking ? 0.6 : 1 }}
+                          >
+                            {igLinking ? (
+                              <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.3" fill="none"/>
+                                <path d="M12 2a10 10 0 019.5 6.8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" fill="none"/>
+                              </svg>
+                            ) : "Vincular"}
+                          </button>
+                        </div>
+                        {igError && <p className="text-xs font-medium" style={{ color: 'var(--color-error)' }}>{igError}</p>}
+                        <button
+                          type="button"
+                          onClick={() => { setIgLinkMode(false); setIgInput(""); setIgError(""); }}
+                          className="text-xs font-medium"
+                          style={{ color: 'var(--color-text-muted)' }}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setIgLinkMode(true)}
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all"
+                        style={{ background: 'linear-gradient(135deg, #833AB4, #E4405F, #FCAF45)', color: 'white' }}
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                          <rect x="2" y="2" width="20" height="20" rx="6" stroke="white" strokeWidth="2" fill="none"/>
+                          <circle cx="12" cy="12" r="5" stroke="white" strokeWidth="2" fill="none"/>
+                          <circle cx="17.5" cy="6.5" r="1.5" fill="white"/>
+                        </svg>
+                        Vincular cuenta de Instagram
+                      </button>
+                    )}
                   </div>
                   <div>
                     <label htmlFor="tutorFacebook" className="label">Facebook</label>
