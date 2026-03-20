@@ -67,6 +67,7 @@ const SUGGESTIONS = [
   { text: "Cuéntame un dato curioso", icon: "bulb" },
   { text: "¿Cómo puedo dormir mejor?", icon: "moon" },
   { text: "Recomiéndame una receta", icon: "chef" },
+  { text: "Estoy aburrido", icon: "bored" },
 ];
 
 function SuggestionIcon({ type }: { type: string }) {
@@ -95,6 +96,15 @@ function SuggestionIcon({ type }: { type: string }) {
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
           <path d="M5 15h8M4 9c-1.1 0-2-.9-2-2a2 2 0 013-1.7A3 3 0 019 2a3 3 0 014 3.3A2 2 0 0114 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
           <path d="M5 9v4a2 2 0 002 2h4a2 2 0 002-2V9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+        </svg>
+      );
+    case "bored":
+      return (
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <circle cx="9" cy="9" r="7" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+          <circle cx="6.5" cy="7.5" r="1" fill="currentColor"/>
+          <circle cx="11.5" cy="7.5" r="1" fill="currentColor"/>
+          <path d="M6 12h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
       );
     default:
@@ -227,14 +237,20 @@ export default function ChatbotPage() {
     }
   };
 
+  const BORED_PROMPT = "Estoy aburrido/a y no sé qué hacer. Basándote en mi perfil, mis intereses y mi ciudad, recomiéndame alguna actividad o entretenimiento que pueda disfrutar ahora mismo.";
+
   const handleSend = async (text?: string) => {
     const messageText = text || input.trim();
     if (!messageText || isLoading) return;
 
+    // Show the original text to the user, but send the detailed prompt to the backend
+    const displayText = messageText;
+    const backendText = messageText === "Estoy aburrido" ? BORED_PROMPT : messageText;
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: messageText,
+      content: displayText,
       timestamp: new Date(),
     };
 
@@ -243,7 +259,7 @@ export default function ChatbotPage() {
     setInput("");
     setIsLoading(true);
 
-    await sendTextMessage(messageText);
+    await sendTextMessage(backendText);
     setIsLoading(false);
     inputRef.current?.focus();
   };
@@ -919,6 +935,31 @@ export default function ChatbotPage() {
               <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
                 Pulsa detener cuando termines
               </span>
+            </div>
+          )}
+
+          {/* Bored button - always visible */}
+          {!isWelcomeOnly && (
+            <div className="mb-3 flex justify-center">
+              <button
+                onClick={() => handleSend("Estoy aburrido")}
+                disabled={isLoading}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-medium transition-all duration-200"
+                style={{
+                  background: 'var(--color-bg-card)',
+                  color: 'var(--color-text-primary)',
+                  border: '1px solid var(--color-border)',
+                  boxShadow: 'var(--shadow-sm)',
+                  opacity: isLoading ? 0.5 : 1,
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                }}
+                onMouseEnter={(e) => { if (!isLoading) { e.currentTarget.style.borderColor = 'var(--color-primary-light)'; e.currentTarget.style.background = 'var(--color-primary-muted)'; e.currentTarget.style.color = 'var(--color-primary)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }}}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.background = 'var(--color-bg-card)'; e.currentTarget.style.color = 'var(--color-text-primary)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
+                aria-label="Estoy aburrido - pedir recomendación"
+              >
+                <SuggestionIcon type="bored" />
+                Estoy aburrido
+              </button>
             </div>
           )}
 
