@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { getUserProfile, getTutorProfile, type UserProfile, type TutorProfile } from "@/lib/profile";
+import { getUserProfile, getTutorProfile, getUserMemory, type UserProfile, type TutorProfile, type UserMemory } from "@/lib/profile";
 
 interface Message {
   id: string;
@@ -124,6 +124,8 @@ export default function ChatbotPage() {
   const [alertStatus, setAlertStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [tutorProfile, setTutorProfile] = useState<TutorProfile | null>(null);
+  const [userMemory, setUserMemory] = useState<UserMemory | null>(null);
+  const [sessionUserMessageCount, setSessionUserMessageCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const MAX_TEXTAREA_HEIGHT = 140;
@@ -143,6 +145,7 @@ export default function ChatbotPage() {
       }
     });
     getTutorProfile(user.id).then((tp) => setTutorProfile(tp));
+    getUserMemory(user.id).then((mem) => setUserMemory(mem));
   }, [user, authLoading, router]);
 
   const scrollToBottom = () => {
@@ -167,6 +170,34 @@ export default function ChatbotPage() {
     }
   }, [user]);
 
+  useEffect(() => {
+    const sendMemorySummary = async () => {
+      if (sessionUserMessageCount <= 2) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      const payload = JSON.stringify({
+        messages: messages.map((m) => ({ role: m.role, content: m.content })),
+        access_token: session.access_token,
+      });
+      navigator.sendBeacon(
+        "/api/memory/summarize",
+        new Blob([payload], { type: "application/json" })
+      );
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") sendMemorySummary();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("beforeunload", sendMemorySummary);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", sendMemorySummary);
+    };
+  }, [messages, sessionUserMessageCount]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/");
@@ -180,7 +211,11 @@ export default function ChatbotPage() {
       const response = await fetch("/api/alert", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user: userEmail, timestamp: new Date().toISOString() }),
+        body: JSON.stringify({
+          to: tutorProfile?.number || undefined,
+          user: userEmail,
+          timestamp: new Date().toISOString(),
+        }),
       });
       if (!response.ok) throw new Error(`Error ${response.status}`);
       setAlertStatus("sent");
@@ -204,6 +239,7 @@ export default function ChatbotPage() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    setSessionUserMessageCount((c) => c + 1);
     setInput("");
     setIsLoading(true);
 
@@ -297,6 +333,7 @@ export default function ChatbotPage() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, userMessage]);
+      setSessionUserMessageCount((c) => c + 1);
 
       // --- Phase 2: Get chatbot response (with full context, streamed) ---
       setVoicePhase("thinking");
@@ -323,6 +360,19 @@ export default function ChatbotPage() {
             description: profile.description,
             interests: profile.interests,
             city: profile.city,
+          } : null,
+          tutor_profile: tutorProfile ? {
+            name: tutorProfile.name,
+            number: tutorProfile.number,
+            description: tutorProfile.description,
+            instagram: tutorProfile.instagram,
+            facebook: tutorProfile.facebook,
+            relationship: tutorProfile.relationship,
+            factors: tutorProfile.factors,
+          } : null,
+          user_memory: userMemory ? {
+            facts: userMemory.facts,
+            narrative: userMemory.narrative,
           } : null,
         }),
       });
@@ -442,6 +492,10 @@ export default function ChatbotPage() {
             facebook: tutorProfile.facebook,
             relationship: tutorProfile.relationship,
             factors: tutorProfile.factors,
+          } : null,
+          user_memory: userMemory ? {
+            facts: userMemory.facts,
+            narrative: userMemory.narrative,
           } : null,
         }),
       });

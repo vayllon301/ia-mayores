@@ -61,3 +61,27 @@ export async function hasTutorProfile(userId: string): Promise<boolean> {
 
   return !error && !!data
 }
+
+export interface UserMemoryFact {
+  text: string
+  category: 'hard' | 'soft'
+  created_at: string
+}
+
+export interface UserMemory {
+  id: string
+  facts: UserMemoryFact[]
+  narrative: string | null
+  updated_at: string
+}
+
+export async function getUserMemory(userId: string): Promise<UserMemory | null> {
+  const { data, error } = await supabase
+    .from('user_memory')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (error || !data) return null
+  return data as UserMemory
+}
