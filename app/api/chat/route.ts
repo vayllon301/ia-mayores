@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Configuración del segmento de ruta para Next.js
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Tipo para los mensajes del historial
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
 }
 
-// Manejar métodos no permitidos
 export async function GET() {
   return NextResponse.json(
     { error: "Método no permitido. Use POST." },
@@ -46,7 +43,6 @@ export async function POST(request: NextRequest) {
       } | null;
     };
 
-    // Validación básica
     if (!message || typeof message !== "string") {
       return NextResponse.json(
         { error: "El mensaje es requerido" },
@@ -54,7 +50,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Obtener la URL del backend desde las variables de entorno
     const backendUrl = process.env.BACKEND_URL;
 
     if (!backendUrl) {
@@ -66,7 +61,6 @@ export async function POST(request: NextRequest) {
 
     const streamUrl = `${backendUrl}/chat/stream`;
 
-    // Conectar con el backend FastAPI (SSE streaming)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000);
 

@@ -16,11 +16,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("Audio file received:", {
-      type: audioFile.type,
-      size: audioFile.size,
-    });
-
     // Convert to a proper File object for FormData serialization
     const audioBuffer = await audioFile.arrayBuffer();
     const mimeType = audioFile.type || "audio/webm";
@@ -34,9 +29,6 @@ export async function POST(request: NextRequest) {
     const voiceApiUrl = process.env.VOICE_API_URL ||
       "https://menteviva-bwc9ejdthjhsfecn.swedencentral-01.azurewebsites.net/voice";
 
-    console.log("Attempting to send audio to:", voiceApiUrl);
-    console.log("Environment VOICE_API_URL:", process.env.VOICE_API_URL);
-
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout for voice processing
 
@@ -49,19 +41,10 @@ export async function POST(request: NextRequest) {
 
       clearTimeout(timeoutId);
 
-      console.log("Voice API response status:", voiceResponse.status);
-      console.log("Voice API response content-type:", voiceResponse.headers.get("content-type"));
-
       if (!voiceResponse.ok) {
         const errorText = await voiceResponse
           .text()
           .catch(() => "Error desconocido del API de voz");
-
-        console.error("Voice API error response:", {
-          status: voiceResponse.status,
-          statusText: voiceResponse.statusText,
-          body: errorText,
-        });
 
         return NextResponse.json(
           {
@@ -72,16 +55,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Backend now returns JSON directly with full response
       const data = await voiceResponse.json();
-
-      console.log("Voice API response received:", {
-        text: data.text,
-        responseLength: data.response?.length,
-        hasAudio: !!data.audio,
-      });
-
-      // Pass through the JSON response directly
       return NextResponse.json({
         text: data.text || "",
         response: data.response || "",
