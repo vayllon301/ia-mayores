@@ -18,12 +18,12 @@ function LogoIcon({ className = "w-10 h-10" }: { className?: string }) {
     <svg className={className} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="24" cy="24" r="24" fill="url(#logo-chat)" />
       <path d="M24 12c-5.5 0-10 4-10 9 0 3 1.5 5.6 3.8 7.2.2.2.2.4.2.7l-.5 3.1c-.1.5.4.9.8.7l3.3-1.5c.2-.1.4-.1.6 0 .6.1 1.2.2 1.8.2 5.5 0 10-4 10-9s-4.5-9-10-9z" fill="white" opacity="0.95"/>
-      <circle cx="19.5" cy="20.5" r="1.5" fill="#1a7a6d"/>
-      <circle cx="24" cy="20.5" r="1.5" fill="#1a7a6d"/>
-      <circle cx="28.5" cy="20.5" r="1.5" fill="#1a7a6d"/>
+      <circle cx="19.5" cy="20.5" r="1.5" fill="#6b5870"/>
+      <circle cx="24" cy="20.5" r="1.5" fill="#6b5870"/>
+      <circle cx="28.5" cy="20.5" r="1.5" fill="#6b5870"/>
       <defs>
         <linearGradient id="logo-chat" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#1a7a6d"/><stop offset="1" stopColor="#22a196"/>
+          <stop stopColor="#191919"/><stop offset="1" stopColor="#6b5870"/>
         </linearGradient>
       </defs>
     </svg>
@@ -34,13 +34,13 @@ function BotAvatar() {
   return (
     <div
       className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
-      style={{ background: 'linear-gradient(135deg, #1a7a6d, #22a196)', boxShadow: '0 2px 8px rgba(26, 122, 109, 0.25)' }}
+      style={{ background: 'linear-gradient(135deg, #191919, #6b5870)', boxShadow: '0 2px 8px rgba(25, 25, 25, 0.25)' }}
     >
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
         <path d="M12 2c-4.4 0-8 3.2-8 7.2 0 2.4 1.2 4.5 3 5.8.2.1.2.3.2.5l-.4 2.5c-.1.4.3.7.7.5l2.6-1.2c.2-.1.3-.1.5 0 .5.1 1 .2 1.4.2 4.4 0 8-3.2 8-7.2S16.4 2 12 2z" fill="white" opacity="0.95"/>
-        <circle cx="9" cy="9" r="1.2" fill="#1a7a6d"/>
-        <circle cx="12" cy="9" r="1.2" fill="#1a7a6d"/>
-        <circle cx="15" cy="9" r="1.2" fill="#1a7a6d"/>
+        <circle cx="9" cy="9" r="1.2" fill="#6b5870"/>
+        <circle cx="12" cy="9" r="1.2" fill="#6b5870"/>
+        <circle cx="15" cy="9" r="1.2" fill="#6b5870"/>
       </svg>
     </div>
   );
@@ -51,7 +51,7 @@ function UserAvatar({ email }: { email: string | null }) {
   return (
     <div
       className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 text-sm font-bold text-white"
-      style={{ background: 'linear-gradient(135deg, #e8985e, #d07a3e)', boxShadow: '0 2px 8px rgba(232, 152, 94, 0.25)' }}
+      style={{ background: 'linear-gradient(135deg, #6b5870, #5a4a5e)', boxShadow: '0 2px 8px rgba(107, 88, 112, 0.25)' }}
     >
       {initial}
     </div>
@@ -562,7 +562,6 @@ export default function ChatbotPage() {
           className="py-3 px-4 md:px-6 flex items-center justify-between"
           style={{
             background: 'var(--color-bg-card)',
-            borderBottom: '1px solid var(--color-border)',
           }}
         >
           <div className="flex items-center gap-3">
@@ -634,11 +633,11 @@ export default function ChatbotPage() {
                   <path d="M12 2a10 10 0 019.5 6.8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" fill="none"/>
                 </svg>
               ) : alertStatus === "sent" ? (
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
                   <path d="M3 8l3.5 3.5L13 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               ) : (
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
                   <path d="M8 1.5a5 5 0 00-5 5v3l-1.5 2H14.5L13 9.5v-3a5 5 0 00-5-5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none"/>
                   <path d="M6.5 13.5a1.5 1.5 0 003 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                 </svg>
@@ -646,6 +645,25 @@ export default function ChatbotPage() {
               <span className="hidden sm:inline">
                 {alertStatus === "sending" ? "Enviando..." : alertStatus === "sent" ? "¡Alerta enviada!" : alertStatus === "error" ? "Error, reintentar" : "Alerta"}
               </span>
+            </button>
+
+            {/* Settings button */}
+            <button
+              onClick={() => router.push("/settings")}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-200"
+              style={{
+                color: 'var(--color-text-secondary)',
+                background: 'var(--color-bg-secondary)',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-primary-muted)'; e.currentTarget.style.color = 'var(--color-primary)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--color-bg-secondary)'; e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
+              aria-label="Ajustes de apariencia"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <circle cx="10" cy="10" r="3" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                <path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M4.1 4.1l1.4 1.4M14.5 14.5l1.4 1.4M4.1 15.9l1.4-1.4M14.5 5.5l1.4-1.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              <span className="hidden sm:inline">Ajustes</span>
             </button>
 
             {/* Profile button */}
@@ -661,7 +679,7 @@ export default function ChatbotPage() {
               onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--color-bg-secondary)'; e.currentTarget.style.color = 'var(--color-text-secondary)'; e.currentTarget.style.borderColor = 'var(--color-border)'; }}
               aria-label="Editar perfil"
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
                 <circle cx="8" cy="5" r="3" stroke="currentColor" strokeWidth="1.5" fill="none"/>
                 <path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
               </svg>
@@ -680,7 +698,7 @@ export default function ChatbotPage() {
               onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--color-bg-secondary)'; e.currentTarget.style.color = 'var(--color-text-secondary)'; e.currentTarget.style.borderColor = 'var(--color-border)'; }}
               aria-label="Cerrar sesión"
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
                 <path d="M6 14H3a1 1 0 01-1-1V3a1 1 0 011-1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               Salir
@@ -697,7 +715,7 @@ export default function ChatbotPage() {
         role="log"
         aria-live="polite"
         style={{
-          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(26, 122, 109, 0.03) 1px, transparent 0)',
+          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(25, 25, 25, 0.03) 1px, transparent 0)',
           backgroundSize: '24px 24px',
         }}
       >
@@ -708,13 +726,13 @@ export default function ChatbotPage() {
               <div className="mb-6">
                 <div
                   className="w-20 h-20 rounded-3xl mx-auto flex items-center justify-center animate-float"
-                  style={{ background: 'linear-gradient(135deg, #1a7a6d, #22a196)', boxShadow: '0 8px 24px rgba(26, 122, 109, 0.3)' }}
+                  style={{ background: 'linear-gradient(135deg, #191919, #6b5870)', boxShadow: '0 8px 24px rgba(25, 25, 25, 0.3)' }}
                 >
                   <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
                     <path d="M12 2c-4.4 0-8 3.2-8 7.2 0 2.4 1.2 4.5 3 5.8.2.1.2.3.2.5l-.4 2.5c-.1.4.3.7.7.5l2.6-1.2c.2-.1.3-.1.5 0 .5.1 1 .2 1.4.2 4.4 0 8-3.2 8-7.2S16.4 2 12 2z" fill="white" opacity="0.95"/>
-                    <circle cx="9" cy="9" r="1.2" fill="#1a7a6d"/>
-                    <circle cx="12" cy="9" r="1.2" fill="#1a7a6d"/>
-                    <circle cx="15" cy="9" r="1.2" fill="#1a7a6d"/>
+                    <circle cx="9" cy="9" r="1.2" fill="#6b5870"/>
+                    <circle cx="12" cy="9" r="1.2" fill="#6b5870"/>
+                    <circle cx="15" cy="9" r="1.2" fill="#6b5870"/>
                   </svg>
                 </div>
               </div>
@@ -755,7 +773,11 @@ export default function ChatbotPage() {
 
           {/* Message list (skip welcome when showing welcome screen) */}
           <div className={`space-y-4 ${isWelcomeOnly ? 'hidden' : ''}`}>
-            {messages.map((message) => (
+            {messages.map((message) => {
+              // Hide empty placeholder messages — the typing indicator covers this state
+              if (message.role === "assistant" && !message.content) return null;
+
+              return (
               <div
                 key={message.id}
                 className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"} animate-fade-in`}
@@ -799,7 +821,8 @@ export default function ChatbotPage() {
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
 
             {/* Typing / voice phase indicator (hidden once tokens start streaming) */}
             {((isLoading && !isStreaming) || voicePhase !== "idle") && (
@@ -808,9 +831,6 @@ export default function ChatbotPage() {
                   <BotAvatar />
                 </div>
                 <div className="message-bot px-5 py-4">
-                  <p className="text-xs font-bold mb-2" style={{ color: 'var(--color-primary)', opacity: 0.8 }}>
-                    MenteViva
-                  </p>
                   <div className="flex items-center gap-2">
                     <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
                       {voicePhase === "transcribing" ? "Escuchando" :
@@ -843,7 +863,7 @@ export default function ChatbotPage() {
       </main>
 
       {/* Input area */}
-      <footer className="shrink-0" style={{ background: 'var(--color-bg-card)', borderTop: '1px solid var(--color-border)' }}>
+      <footer className="shrink-0" style={{ background: 'var(--color-bg-card)' }}>
         <div className="max-w-3xl mx-auto px-4 py-4">
           {/* Recording indicator */}
           {isRecording && (

@@ -11,12 +11,12 @@ function LogoIcon({ className = "w-10 h-10" }: { className?: string }) {
     <svg className={className} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="24" cy="24" r="24" fill="url(#logo-reg)" />
       <path d="M24 12c-5.5 0-10 4-10 9 0 3 1.5 5.6 3.8 7.2.2.2.2.4.2.7l-.5 3.1c-.1.5.4.9.8.7l3.3-1.5c.2-.1.4-.1.6 0 .6.1 1.2.2 1.8.2 5.5 0 10-4 10-9s-4.5-9-10-9z" fill="white" opacity="0.95"/>
-      <circle cx="19.5" cy="20.5" r="1.5" fill="#1a7a6d"/>
-      <circle cx="24" cy="20.5" r="1.5" fill="#1a7a6d"/>
-      <circle cx="28.5" cy="20.5" r="1.5" fill="#1a7a6d"/>
+      <circle cx="19.5" cy="20.5" r="1.5" fill="#6b5870"/>
+      <circle cx="24" cy="20.5" r="1.5" fill="#6b5870"/>
+      <circle cx="28.5" cy="20.5" r="1.5" fill="#6b5870"/>
       <defs>
         <linearGradient id="logo-reg" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#1a7a6d"/><stop offset="1" stopColor="#22a196"/>
+          <stop stopColor="#191919"/><stop offset="1" stopColor="#6b5870"/>
         </linearGradient>
       </defs>
     </svg>
@@ -162,7 +162,7 @@ function RegisterContent() {
               <circle cx="60" cy="60" r="40" fill="white" opacity="0.15"/>
               <circle cx="60" cy="42" r="14" stroke="white" strokeWidth="3" fill="none" opacity="0.9"/>
               <path d="M36 82c0-13.3 10.7-24 24-24s24 10.7 24 24" stroke="white" strokeWidth="3" strokeLinecap="round" fill="none" opacity="0.9"/>
-              <path d="M70 38l5-5m0 0l5 5m-5-5v14" stroke="#fce8d5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M70 38l5-5m0 0l5 5m-5-5v14" stroke="#f1d8f4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
           <h2 className="text-3xl font-bold text-white mb-4">

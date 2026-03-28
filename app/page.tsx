@@ -6,14 +6,14 @@ function LogoIcon({ className = "w-10 h-10" }: { className?: string }) {
     <svg className={className} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="24" cy="24" r="24" fill="url(#logo-grad)" />
       <path d="M24 12c-5.5 0-10 4-10 9 0 3 1.5 5.6 3.8 7.2.2.2.2.4.2.7l-.5 3.1c-.1.5.4.9.8.7l3.3-1.5c.2-.1.4-.1.6 0 .6.1 1.2.2 1.8.2 5.5 0 10-4 10-9s-4.5-9-10-9z" fill="white" opacity="0.95"/>
-      <circle cx="19.5" cy="20.5" r="1.5" fill="#1a7a6d"/>
-      <circle cx="24" cy="20.5" r="1.5" fill="#1a7a6d"/>
-      <circle cx="28.5" cy="20.5" r="1.5" fill="#1a7a6d"/>
-      <path d="M15.5 14.5c1-2.5 4-4.5 8.5-4.5s7.5 2 8.5 4.5" stroke="#e8985e" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.7"/>
+      <circle cx="19.5" cy="20.5" r="1.5" fill="#6b5870"/>
+      <circle cx="24" cy="20.5" r="1.5" fill="#6b5870"/>
+      <circle cx="28.5" cy="20.5" r="1.5" fill="#6b5870"/>
+      <path d="M15.5 14.5c1-2.5 4-4.5 8.5-4.5s7.5 2 8.5 4.5" stroke="#6b5870" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.7"/>
       <defs>
         <linearGradient id="logo-grad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#1a7a6d"/>
-          <stop offset="1" stopColor="#22a196"/>
+          <stop stopColor="#191919"/>
+          <stop offset="1" stopColor="#6b5870"/>
         </linearGradient>
       </defs>
     </svg>
@@ -23,9 +23,9 @@ function LogoIcon({ className = "w-10 h-10" }: { className?: string }) {
 function EaseIcon() {
   return (
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="20" cy="14" r="6" stroke="#1a7a6d" strokeWidth="2.5" fill="none"/>
-      <path d="M10 32c0-5.5 4.5-10 10-10s10 4.5 10 10" stroke="#1a7a6d" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
-      <path d="M26 12l3-3m0 0l3 3m-3-3v8" stroke="#e8985e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="20" cy="14" r="6" stroke="#6b5870" strokeWidth="2.5" fill="none"/>
+      <path d="M10 32c0-5.5 4.5-10 10-10s10 4.5 10 10" stroke="#6b5870" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+      <path d="M26 12l3-3m0 0l3 3m-3-3v8" stroke="#6b5870" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }
@@ -33,10 +33,10 @@ function EaseIcon() {
 function HeartIcon() {
   return (
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M20 34s-12-7.5-12-16c0-4.4 3.6-8 8-8 2.8 0 5.2 1.4 6.5 3.5h-5l4 4.5 4-4.5h-5C22 11.4 24.4 10 27.2 10c4.4 0 8 3.6 8 8 0 8.5-12 16-12 16z" fill="none" stroke="#1a7a6d" strokeWidth="2.5" strokeLinejoin="round"/>
-      <circle cx="16" cy="19" r="1.5" fill="#e8985e"/>
-      <circle cx="24" cy="19" r="1.5" fill="#e8985e"/>
-      <path d="M17 24c1.5 2 4.5 2 6 0" stroke="#e8985e" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M20 34s-12-7.5-12-16c0-4.4 3.6-8 8-8 2.8 0 5.2 1.4 6.5 3.5h-5l4 4.5 4-4.5h-5C22 11.4 24.4 10 27.2 10c4.4 0 8 3.6 8 8 0 8.5-12 16-12 16z" fill="none" stroke="#6b5870" strokeWidth="2.5" strokeLinejoin="round"/>
+      <circle cx="16" cy="19" r="1.5" fill="#6b5870"/>
+      <circle cx="24" cy="19" r="1.5" fill="#6b5870"/>
+      <path d="M17 24c1.5 2 4.5 2 6 0" stroke="#6b5870" strokeWidth="2" strokeLinecap="round"/>
     </svg>
   );
 }
@@ -44,8 +44,8 @@ function HeartIcon() {
 function ShieldIcon() {
   return (
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M20 4L6 10v10c0 9 6 16 14 18 8-2 14-9 14-18V10L20 4z" stroke="#1a7a6d" strokeWidth="2.5" fill="none" strokeLinejoin="round"/>
-      <path d="M14 20l4 4 8-8" stroke="#e8985e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M20 4L6 10v10c0 9 6 16 14 18 8-2 14-9 14-18V10L20 4z" stroke="#6b5870" strokeWidth="2.5" fill="none" strokeLinejoin="round"/>
+      <path d="M14 20l4 4 8-8" stroke="#6b5870" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }
@@ -53,10 +53,10 @@ function ShieldIcon() {
 function VoiceIcon() {
   return (
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="16" y="6" width="8" height="16" rx="4" stroke="#1a7a6d" strokeWidth="2.5" fill="none"/>
-      <path d="M10 20c0 5.5 4.5 10 10 10s10-4.5 10-10" stroke="#1a7a6d" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
-      <line x1="20" y1="30" x2="20" y2="36" stroke="#1a7a6d" strokeWidth="2.5" strokeLinecap="round"/>
-      <path d="M15 36h10" stroke="#e8985e" strokeWidth="2.5" strokeLinecap="round"/>
+      <rect x="16" y="6" width="8" height="16" rx="4" stroke="#6b5870" strokeWidth="2.5" fill="none"/>
+      <path d="M10 20c0 5.5 4.5 10 10 10s10-4.5 10-10" stroke="#6b5870" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+      <line x1="20" y1="30" x2="20" y2="36" stroke="#6b5870" strokeWidth="2.5" strokeLinecap="round"/>
+      <path d="M15 36h10" stroke="#6b5870" strokeWidth="2.5" strokeLinecap="round"/>
     </svg>
   );
 }
@@ -171,31 +171,30 @@ export default function LandingPage() {
                 icon: <EaseIcon />,
                 title: "Fácil de usar",
                 desc: "Letras grandes, botones claros y sin complicaciones técnicas.",
-                color: "#e8f4f0",
+                color: "#f1d8f4",
               },
               {
                 icon: <HeartIcon />,
                 title: "Siempre amable",
                 desc: "Un asistente paciente que responde con cariño y claridad.",
-                color: "#fce8d5",
+                color: "#f5f3ee",
               },
               {
                 icon: <ShieldIcon />,
                 title: "Seguro y privado",
                 desc: "Tus conversaciones están protegidas. Solo tú las ves.",
-                color: "#e8f4f0",
+                color: "#f1d8f4",
               },
               {
                 icon: <VoiceIcon />,
                 title: "Habla con tu voz",
                 desc: "Graba mensajes de voz si prefieres no escribir.",
-                color: "#fce8d5",
+                color: "#f5f3ee",
               },
             ].map((benefit, i) => (
               <div
                 key={i}
                 className="card text-center group hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
-                style={{ border: '1px solid var(--color-border)' }}
               >
                 <div
                   className="w-20 h-20 rounded-2xl mx-auto mb-5 flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
@@ -248,12 +247,12 @@ export default function LandingPage() {
                 {i < 2 && (
                   <div
                     className="absolute left-[31px] top-[64px] w-[2px] h-[calc(100%-32px)]"
-                    style={{ background: 'var(--color-border)' }}
+                    style={{ background: 'var(--surface-container-high)' }}
                   />
                 )}
                 <div
                   className="w-16 h-16 rounded-2xl flex-shrink-0 flex items-center justify-center text-2xl font-bold relative z-10 gradient-primary text-white"
-                  style={{ boxShadow: '0 4px 12px rgba(26, 122, 109, 0.25)' }}
+                  style={{ boxShadow: '0 4px 12px rgba(25, 25, 25, 0.2)' }}
                 >
                   {step.num}
                 </div>
@@ -306,7 +305,7 @@ export default function LandingPage() {
       </main>
 
       {/* Footer */}
-      <footer className="py-10 px-6 md:px-12" style={{ background: 'var(--color-bg-secondary)', borderTop: '1px solid var(--color-border)' }}>
+      <footer className="py-10 px-6 md:px-12" style={{ background: 'var(--color-bg-secondary)' }}>
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">

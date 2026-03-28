@@ -1,6 +1,20 @@
 import type { Metadata } from "next";
+import { Manrope, Public_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
+import { SettingsProvider } from "@/lib/settings-context";
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-heading",
+  display: "swap",
+});
+
+const publicSans = Public_Sans({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "MenteViva - Tu compañero inteligente",
@@ -14,13 +28,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className="min-h-screen">
+      <body className={`${manrope.variable} ${publicSans.variable} min-h-screen`}>
         {/* Skip link para accesibilidad */}
         <a href="#main-content" className="skip-link">
           Saltar al contenido principal
         </a>
         <AuthProvider>
-          {children}
+          <SettingsProvider>
+            {children}
+          </SettingsProvider>
         </AuthProvider>
       </body>
     </html>

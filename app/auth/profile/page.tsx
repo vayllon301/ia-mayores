@@ -12,12 +12,12 @@ function LogoIcon({ className = "w-10 h-10" }: { className?: string }) {
     <svg className={className} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="24" cy="24" r="24" fill="url(#logo-profile)" />
       <path d="M24 12c-5.5 0-10 4-10 9 0 3 1.5 5.6 3.8 7.2.2.2.2.4.2.7l-.5 3.1c-.1.5.4.9.8.7l3.3-1.5c.2-.1.4-.1.6 0 .6.1 1.2.2 1.8.2 5.5 0 10-4 10-9s-4.5-9-10-9z" fill="white" opacity="0.95"/>
-      <circle cx="19.5" cy="20.5" r="1.5" fill="#1a7a6d"/>
-      <circle cx="24" cy="20.5" r="1.5" fill="#1a7a6d"/>
-      <circle cx="28.5" cy="20.5" r="1.5" fill="#1a7a6d"/>
+      <circle cx="19.5" cy="20.5" r="1.5" fill="#6b5870"/>
+      <circle cx="24" cy="20.5" r="1.5" fill="#6b5870"/>
+      <circle cx="28.5" cy="20.5" r="1.5" fill="#6b5870"/>
       <defs>
         <linearGradient id="logo-profile" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#1a7a6d"/><stop offset="1" stopColor="#22a196"/>
+          <stop stopColor="#191919"/><stop offset="1" stopColor="#6b5870"/>
         </linearGradient>
       </defs>
     </svg>
@@ -317,13 +317,13 @@ function ProfileContent() {
                 <>
                   {/* Pencil icon for edit mode */}
                   <circle cx="78" cy="72" r="12" fill="white" opacity="0.9"/>
-                  <path d="M74 76l8-8 2 2-8 8-3 1 1-3z" stroke="#1a7a6d" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                  <path d="M74 76l8-8 2 2-8 8-3 1 1-3z" stroke="#6b5870" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
                 </>
               ) : (
                 <>
                   {/* Checkmark for create mode */}
                   <circle cx="78" cy="72" r="12" fill="white" opacity="0.9"/>
-                  <path d="M73 72l3.5 3.5 7-7" stroke="#1a7a6d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M73 72l3.5 3.5 7-7" stroke="#6b5870" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </>
               )}
             </svg>
