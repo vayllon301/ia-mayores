@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { getUserProfile, getTutorProfile, getUserMemory, type UserProfile, type TutorProfile, type UserMemory } from "@/lib/profile";
+import { fetchUnreadNotifications, dismissReminder, snoozeReminder, markNotificationRead, type Notification } from "@/lib/notifications";
 
 interface Message {
   id: string;
@@ -134,6 +135,7 @@ export default function ChatbotPage() {
   const [tutorProfile, setTutorProfile] = useState<TutorProfile | null>(null);
   const [userMemory, setUserMemory] = useState<UserMemory | null>(null);
   const [sessionUserMessageCount, setSessionUserMessageCount] = useState(0);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRafRef = useRef<number>(0);
@@ -161,6 +163,19 @@ export default function ChatbotPage() {
     getTutorProfile(user.id).then((tp) => setTutorProfile(tp));
     getUserMemory(user.id).then((mem) => setUserMemory(mem));
   }, [user, authLoading, router]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const poll = async () => {
+      const notifs = await fetchUnreadNotifications(user.id);
+      setNotifications(notifs);
+    };
+
+    poll();
+    const interval = setInterval(poll, 15000);
+    return () => clearInterval(interval);
+  }, [user?.id]);
 
   const scrollToBottom = () => {
     cancelAnimationFrame(scrollRafRef.current);
@@ -242,6 +257,7 @@ export default function ChatbotPage() {
   const buildChatPayload = (text: string) => ({
     message: text,
     history: messages.map((m) => ({ role: m.role, content: m.content })),
+    user_id: user?.id || null,
     user_profile: profile ? {
       name: profile.name, number: profile.number,
       description: profile.description, interests: profile.interests, city: profile.city,
@@ -525,6 +541,18 @@ export default function ChatbotPage() {
     }
   };
 
+  const handleDismissNotification = async (notif: Notification) => {
+    await dismissReminder(notif.reminder_id);
+    await markNotificationRead(notif.id);
+    setNotifications((prev) => prev.filter((n) => n.id !== notif.id));
+  };
+
+  const handleSnoozeNotification = async (notif: Notification) => {
+    await snoozeReminder(notif.reminder_id, 10);
+    await markNotificationRead(notif.id);
+    setNotifications((prev) => prev.filter((n) => n.id !== notif.id));
+  };
+
   const handleVoiceClick = () => {
     if (isRecording) {
       stopRecording();
@@ -555,6 +583,40 @@ export default function ChatbotPage() {
 
   return (
     <div className="h-screen flex flex-col" style={{ background: 'var(--color-bg-secondary)' }}>
+      {notifications.length > 0 && (
+        <div className="fixed top-4 right-4 z-50 flex flex-col gap-3 max-w-sm">
+          {notifications.map((notif) => (
+            <div
+              key={notif.id}
+              className="bg-white rounded-2xl shadow-lg border border-gray-200 p-4"
+              style={{ animation: 'slideDown 0.3s ease-out' }}
+            >
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">⏰</span>
+                <div className="flex-1">
+                  <p className="font-semibold text-gray-900 text-lg">Recordatorio</p>
+                  <p className="text-gray-700 mt-1">{notif.message}</p>
+                </div>
+              </div>
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={() => handleDismissNotification(notif)}
+                  className="flex-1 px-4 py-2 rounded-xl text-white font-medium"
+                  style={{ background: 'linear-gradient(135deg, #191919, #6b5870)' }}
+                >
+                  Entendido
+                </button>
+                <button
+                  onClick={() => handleSnoozeNotification(notif)}
+                  className="flex-1 px-4 py-2 rounded-xl border border-gray-300 text-gray-700 font-medium hover:bg-gray-50"
+                >
+                  10 min más
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       {/* Header with gradient accent line */}
       <div className="shrink-0">
         <div className="h-1 gradient-warm" />
