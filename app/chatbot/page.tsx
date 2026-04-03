@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { getUserProfile, getTutorProfile, getUserMemory, type UserProfile, type TutorProfile, type UserMemory } from "@/lib/profile";
-import { fetchUnreadNotifications, dismissReminder, snoozeReminder, markNotificationRead, type Notification } from "@/lib/notifications";
+import { fetchUnreadNotifications, dismissReminder, snoozeReminder, markNotificationRead, fetchReminders, createReminder, type Notification, type Reminder } from "@/lib/notifications";
 
 interface Message {
   id: string;
@@ -60,7 +60,7 @@ function UserAvatar({ email }: { email: string | null }) {
 }
 
 function formatTime(date: Date): string {
-  return date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" });
 }
 
 const SUGGESTIONS = [
@@ -134,8 +134,19 @@ export default function ChatbotPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [tutorProfile, setTutorProfile] = useState<TutorProfile | null>(null);
   const [userMemory, setUserMemory] = useState<UserMemory | null>(null);
+  const [userLocation, setUserLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   const [sessionUserMessageCount, setSessionUserMessageCount] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [showReminders, setShowReminders] = useState(false);
+  const [newReminderMessage, setNewReminderMessage] = useState("");
+  const [newReminderDate, setNewReminderDate] = useState("");
+  const [newReminderTime, setNewReminderTime] = useState("");
+  const [creatingReminder, setCreatingReminder] = useState(false);
+  const prevNotifIdsRef = useRef<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRafRef = useRef<number>(0);
@@ -143,6 +154,7 @@ export default function ChatbotPage() {
   messagesRef.current = messages;
   const sessionCountRef = useRef(sessionUserMessageCount);
   sessionCountRef.current = sessionUserMessageCount;
+  const userLocationRef = useRef<{ latitude: number; longitude: number } | null>(null);
   const MAX_TEXTAREA_HEIGHT = 140;
   const userEmail = user?.email ?? null;
 
@@ -164,18 +176,106 @@ export default function ChatbotPage() {
     getUserMemory(user.id).then((mem) => setUserMemory(mem));
   }, [user, authLoading, router]);
 
+  const playNotificationSound = useCallback(() => {
+    try {
+      const ctx = new AudioContext();
+      // Two-tone chime: friendly, clear, not alarming
+      const play = (freq: number, start: number, dur: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.3, ctx.currentTime + start);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + start + dur);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(ctx.currentTime + start);
+        osc.stop(ctx.currentTime + start + dur);
+      };
+      play(587, 0, 0.25);    // D5
+      play(880, 0.2, 0.35);  // A5
+    } catch {
+      // AudioContext not available — silent fallback
+    }
+  }, []);
+
   useEffect(() => {
     if (!user?.id) return;
 
     const poll = async () => {
       const notifs = await fetchUnreadNotifications(user.id);
+      const newIds = new Set(notifs.map((n) => n.id));
+      const hasNew = notifs.some((n) => !prevNotifIdsRef.current.has(n.id));
+      if (hasNew && prevNotifIdsRef.current.size > 0) {
+        playNotificationSound();
+      }
+      prevNotifIdsRef.current = newIds;
       setNotifications(notifs);
     };
 
     poll();
     const interval = setInterval(poll, 15000);
     return () => clearInterval(interval);
+  }, [user?.id, playNotificationSound]);
+
+  const loadReminders = useCallback(async () => {
+    if (!user?.id) return;
+    const list = await fetchReminders(user.id);
+    setReminders(list);
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    loadReminders();
+  }, [user?.id, loadReminders]);
+
+  useEffect(() => {
+    if (!("geolocation" in navigator)) {
+      console.warn("[MenteViva] Geolocation API not available in this browser");
+      return;
+    }
+
+    console.log("[MenteViva] Requesting GPS location...");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const coords = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+        console.log("[MenteViva] GPS location obtained:", coords);
+        userLocationRef.current = coords;
+        setUserLocation(coords);
+      },
+      (error) => {
+        console.warn("[MenteViva] GPS location failed, will use profile city as fallback:", error.message);
+        userLocationRef.current = null;
+        setUserLocation(null);
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 300000,
+      }
+    );
+  }, []);
+
+  const handleCreateReminder = async () => {
+    if (!user?.id || !newReminderMessage.trim() || !newReminderDate || !newReminderTime) return;
+    setCreatingReminder(true);
+    const remindAt = new Date(`${newReminderDate}T${newReminderTime}`).toISOString();
+    const result = await createReminder(user.id, newReminderMessage.trim(), remindAt);
+    if (result) {
+      setNewReminderMessage("");
+      setNewReminderDate("");
+      setNewReminderTime("");
+      await loadReminders();
+    }
+    setCreatingReminder(false);
+  };
+
+  const handleDismissReminder = async (reminderId: string) => {
+    await dismissReminder(reminderId);
+    setReminders((prev) => prev.filter((r) => r.id !== reminderId));
+  };
 
   const scrollToBottom = () => {
     cancelAnimationFrame(scrollRafRef.current);
@@ -254,22 +354,29 @@ export default function ChatbotPage() {
     }
   };
 
-  const buildChatPayload = (text: string) => ({
-    message: text,
-    history: messages.map((m) => ({ role: m.role, content: m.content })),
-    user_id: user?.id || null,
-    user_profile: profile ? {
-      name: profile.name, number: profile.number,
-      description: profile.description, interests: profile.interests, city: profile.city,
-    } : null,
-    tutor_profile: tutorProfile ? {
-      name: tutorProfile.name, number: tutorProfile.number,
-      description: tutorProfile.description, instagram: tutorProfile.instagram,
-      facebook: tutorProfile.facebook, relationship: tutorProfile.relationship,
-      factors: tutorProfile.factors,
-    } : null,
-    user_memory: userMemory ? { facts: userMemory.facts, narrative: userMemory.narrative } : null,
-  });
+  const buildChatPayload = (text: string) => {
+    // Use ref for GPS coords — it updates synchronously and avoids the
+    // race condition where React state hasn't re-rendered yet.
+    const loc = userLocationRef.current ?? userLocation;
+    return {
+      message: text,
+      history: messages.map((m) => ({ role: m.role, content: m.content })),
+      user_id: user?.id || null,
+      user_profile: profile ? {
+        name: profile.name, number: profile.number,
+        description: profile.description, interests: profile.interests, city: profile.city,
+      } : null,
+      tutor_profile: tutorProfile ? {
+        name: tutorProfile.name, number: tutorProfile.number,
+        description: tutorProfile.description, instagram: tutorProfile.instagram,
+        facebook: tutorProfile.facebook, relationship: tutorProfile.relationship,
+        factors: tutorProfile.factors,
+      } : null,
+      user_memory: userMemory ? { facts: userMemory.facts, narrative: userMemory.narrative } : null,
+      latitude: loc?.latitude ?? null,
+      longitude: loc?.longitude ?? null,
+    };
+  };
 
   const readSSEStream = async (
     response: Response,
@@ -617,6 +724,174 @@ export default function ChatbotPage() {
           ))}
         </div>
       )}
+      {/* Reminders panel */}
+      {showReminders && (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            style={{ background: 'rgba(0,0,0,0.3)' }}
+            onClick={() => setShowReminders(false)}
+          />
+          <div
+            className="fixed right-4 top-16 z-50 w-full max-w-sm rounded-2xl overflow-hidden"
+            style={{
+              background: 'var(--color-bg-card)',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.2)',
+              border: '1px solid var(--color-border)',
+              maxHeight: 'calc(100vh - 100px)',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            {/* Panel header */}
+            <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <h2 className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                Mis recordatorios
+              </h2>
+              <button
+                onClick={() => setShowReminders(false)}
+                className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
+                style={{ color: 'var(--color-text-muted)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-bg-secondary)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                aria-label="Cerrar panel de recordatorios"
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <path d="M4 4l10 10M14 4L4 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Add new reminder form */}
+            <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <p className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>
+                Nuevo recordatorio
+              </p>
+              <input
+                type="text"
+                value={newReminderMessage}
+                onChange={(e) => setNewReminderMessage(e.target.value)}
+                placeholder="Ej: Tomar la medicación"
+                className="w-full px-4 py-3 rounded-xl text-base mb-3 outline-none transition-colors"
+                style={{
+                  background: 'var(--color-bg-secondary)',
+                  color: 'var(--color-text-primary)',
+                  border: '1px solid var(--color-border)',
+                }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--color-primary-light)'; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)'; }}
+              />
+              <div className="flex gap-2 mb-3">
+                <input
+                  type="date"
+                  value={newReminderDate}
+                  onChange={(e) => setNewReminderDate(e.target.value)}
+                  className="flex-1 px-3 py-3 rounded-xl text-sm outline-none transition-colors"
+                  style={{
+                    background: 'var(--color-bg-secondary)',
+                    color: 'var(--color-text-primary)',
+                    border: '1px solid var(--color-border)',
+                  }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--color-primary-light)'; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)'; }}
+                />
+                <input
+                  type="time"
+                  value={newReminderTime}
+                  onChange={(e) => setNewReminderTime(e.target.value)}
+                  className="flex-1 px-3 py-3 rounded-xl text-sm outline-none transition-colors"
+                  style={{
+                    background: 'var(--color-bg-secondary)',
+                    color: 'var(--color-text-primary)',
+                    border: '1px solid var(--color-border)',
+                  }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--color-primary-light)'; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)'; }}
+                />
+              </div>
+              <button
+                onClick={handleCreateReminder}
+                disabled={creatingReminder || !newReminderMessage.trim() || !newReminderDate || !newReminderTime}
+                className="w-full px-4 py-3 rounded-xl text-white font-semibold text-base transition-all duration-200"
+                style={{
+                  background: (creatingReminder || !newReminderMessage.trim() || !newReminderDate || !newReminderTime)
+                    ? 'var(--color-text-muted)'
+                    : 'linear-gradient(135deg, #191919, #6b5870)',
+                  opacity: (creatingReminder || !newReminderMessage.trim() || !newReminderDate || !newReminderTime) ? 0.5 : 1,
+                  cursor: (creatingReminder || !newReminderMessage.trim() || !newReminderDate || !newReminderTime) ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {creatingReminder ? "Creando..." : "Crear recordatorio"}
+              </button>
+            </div>
+
+            {/* Reminders list */}
+            <div className="flex-1 overflow-y-auto px-5 py-4" style={{ maxHeight: '320px' }}>
+              {reminders.length === 0 ? (
+                <div className="text-center py-8">
+                  <svg width="40" height="40" viewBox="0 0 40 40" fill="none" className="mx-auto mb-3" style={{ opacity: 0.3 }}>
+                    <path d="M20 4a12 12 0 00-12 12v7l-3 5h30l-3-5v-7A12 12 0 0020 4z" stroke="currentColor" strokeWidth="2" fill="none" style={{ color: 'var(--color-text-muted)' }}/>
+                    <path d="M15 28v1a5 5 0 0010 0v-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ color: 'var(--color-text-muted)' }}/>
+                  </svg>
+                  <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                    No tienes recordatorios activos
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {reminders.map((reminder) => {
+                    const remindDate = new Date(reminder.remind_at);
+                    const isPast = remindDate < new Date();
+                    return (
+                      <div
+                        key={reminder.id}
+                        className="p-4 rounded-xl transition-colors"
+                        style={{
+                          background: isPast ? 'rgba(229, 62, 62, 0.05)' : 'var(--color-bg-secondary)',
+                          border: isPast ? '1px solid rgba(229, 62, 62, 0.2)' : '1px solid var(--color-border)',
+                        }}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-base" style={{ color: 'var(--color-text-primary)' }}>
+                              {reminder.message}
+                            </p>
+                            <p className="text-sm mt-1" style={{ color: isPast ? '#c53030' : 'var(--color-text-muted)' }}>
+                              {remindDate.toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short", timeZone: "Europe/Madrid" })}
+                              {" a las "}
+                              {remindDate.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" })}
+                              {isPast && " (vencido)"}
+                            </p>
+                            {reminder.recurrence && (
+                              <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                                Recurrente
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => handleDismissReminder(reminder.id)}
+                            className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
+                            style={{ color: 'var(--color-text-muted)' }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(229, 62, 62, 0.1)'; e.currentTarget.style.color = '#c53030'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-text-muted)'; }}
+                            aria-label="Eliminar recordatorio"
+                            title="Eliminar"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                              <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Header with gradient accent line */}
       <div className="shrink-0">
         <div className="h-1 gradient-warm" />
@@ -641,15 +916,6 @@ export default function ChatbotPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Online indicator */}
-            <div
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
-              style={{ background: 'rgba(56, 161, 105, 0.1)', color: '#38a169' }}
-            >
-              <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#38a169' }} />
-              En línea
-            </div>
-
             {/* Alert button */}
             <button
               onClick={handleAlert}
@@ -707,6 +973,43 @@ export default function ChatbotPage() {
               <span className="hidden sm:inline">
                 {alertStatus === "sending" ? "Enviando..." : alertStatus === "sent" ? "¡Alerta enviada!" : alertStatus === "error" ? "Error, reintentar" : "Alerta"}
               </span>
+            </button>
+
+            {/* Online indicator */}
+            <div
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+              style={{ background: 'rgba(56, 161, 105, 0.1)', color: '#38a169' }}
+            >
+              <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#38a169' }} />
+              En línea
+            </div>
+
+            {/* Reminders button */}
+            <button
+              onClick={() => { setShowReminders(!showReminders); if (!showReminders) loadReminders(); }}
+              className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-200"
+              style={{
+                color: showReminders ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                background: showReminders ? 'var(--color-primary-muted)' : 'var(--color-bg-secondary)',
+                border: showReminders ? '1px solid var(--color-primary-light)' : '1px solid var(--color-border)',
+              }}
+              onMouseEnter={(e) => { if (!showReminders) { e.currentTarget.style.background = 'var(--color-primary-muted)'; e.currentTarget.style.color = 'var(--color-primary)'; e.currentTarget.style.borderColor = 'var(--color-primary-light)'; }}}
+              onMouseLeave={(e) => { if (!showReminders) { e.currentTarget.style.background = 'var(--color-bg-secondary)'; e.currentTarget.style.color = 'var(--color-text-secondary)'; e.currentTarget.style.borderColor = 'var(--color-border)'; }}}
+              aria-label="Ver recordatorios"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M10 2a6 6 0 00-6 6v3.5L2.5 14h15L16 11.5V8a6 6 0 00-6-6z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none"/>
+                <path d="M7.5 14v.5a2.5 2.5 0 005 0V14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              <span className="hidden sm:inline">Recordatorios</span>
+              {reminders.length > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center text-white"
+                  style={{ background: 'linear-gradient(135deg, #6b5870, #5a4a5e)' }}
+                >
+                  {reminders.length}
+                </span>
+              )}
             </button>
 
             {/* Settings button */}

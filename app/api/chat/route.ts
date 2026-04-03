@@ -18,9 +18,10 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, history, user_profile, tutor_profile, user_memory } = body as {
+    const { message, history, user_id, user_profile, tutor_profile, user_memory, latitude, longitude } = body as {
       message: string;
       history: ChatMessage[];
+      user_id?: string | null;
       user_profile?: {
         name: string;
         number: string | null;
@@ -41,6 +42,8 @@ export async function POST(request: NextRequest) {
         facts: Array<{ text: string; category: string; created_at: string }>;
         narrative: string | null;
       } | null;
+      latitude?: number | null;
+      longitude?: number | null;
     };
 
     if (!message || typeof message !== "string") {
@@ -74,9 +77,12 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           message,
           history,
+          user_id: user_id || null,
           user_profile: user_profile || null,
           tutor_profile: tutor_profile || null,
           user_memory: user_memory ?? null,
+          latitude: latitude ?? null,
+          longitude: longitude ?? null,
         }),
         signal: controller.signal,
       });
