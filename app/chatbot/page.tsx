@@ -334,6 +334,23 @@ export default function ChatbotPage() {
     router.refresh();
   };
 
+  const handleRestart = () => {
+    if (isLoading) return;
+    setMessages([
+      {
+        id: "welcome",
+        role: "assistant",
+        content: "¡Hola! Soy tu asistente de MenteViva. Estoy aquí para ayudarte en lo que necesites. ¿En qué puedo ayudarte hoy?",
+        timestamp: new Date(),
+      },
+    ]);
+    setSessionUserMessageCount(0);
+    setInput("");
+    setIsStreaming(false);
+    setVoicePhase("idle");
+    inputRef.current?.focus();
+  };
+
   const handleAlert = async () => {
     if (alertStatus === "sending") return;
     setAlertStatus("sending");
@@ -899,15 +916,15 @@ export default function ChatbotPage() {
       <div className="shrink-0">
         <div className="h-1 gradient-warm" />
         <header
-          className="py-3 px-4 md:px-6 flex items-center justify-between"
+          className="py-1.5 px-4 md:px-6 flex items-center justify-between"
           style={{
             background: 'var(--color-bg-card)',
           }}
         >
           <div className="flex items-center gap-3">
-            <LogoIcon className="w-10 h-10" />
+            <LogoIcon className="w-6 h-6" />
             <div>
-              <h1 className="text-lg font-bold leading-tight" style={{ color: 'var(--color-primary)' }}>
+              <h1 className="text-xs font-bold leading-tight" style={{ color: 'var(--color-primary)' }}>
                 MenteViva
               </h1>
               {userEmail && (
@@ -1231,7 +1248,7 @@ export default function ChatbotPage() {
       </main>
 
       {/* Input area */}
-      <footer className="shrink-0" style={{ background: 'var(--color-bg-card)' }}>
+      <footer className="shrink-0">
         <div className="max-w-3xl mx-auto px-4 py-4">
           {/* Recording indicator */}
           {isRecording && (
@@ -1252,9 +1269,9 @@ export default function ChatbotPage() {
             </div>
           )}
 
-          {/* Bored button - always visible */}
+          {/* Bored + Restart buttons - visible when there's an active conversation */}
           {!isWelcomeOnly && (
-            <div className="mb-3 flex justify-center">
+            <div className="mb-3 flex justify-center gap-2 flex-wrap">
               <button
                 onClick={() => handleSend("Estoy aburrido")}
                 disabled={isLoading}
@@ -1273,6 +1290,29 @@ export default function ChatbotPage() {
               >
                 <SuggestionIcon type="bored" />
                 Estoy aburrido
+              </button>
+              <button
+                onClick={handleRestart}
+                disabled={isLoading}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-medium transition-all duration-200"
+                style={{
+                  background: 'var(--color-bg-card)',
+                  color: 'var(--color-text-primary)',
+                  border: '1px solid var(--color-border)',
+                  boxShadow: 'var(--shadow-sm)',
+                  opacity: isLoading ? 0.5 : 1,
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                }}
+                onMouseEnter={(e) => { if (!isLoading) { e.currentTarget.style.borderColor = 'var(--color-primary-light)'; e.currentTarget.style.background = 'var(--color-primary-muted)'; e.currentTarget.style.color = 'var(--color-primary)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }}}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.background = 'var(--color-bg-card)'; e.currentTarget.style.color = 'var(--color-text-primary)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
+                aria-label="Reiniciar conversación"
+                title="Reiniciar conversación"
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <path d="M2.5 9a6.5 6.5 0 1 1 1.9 4.6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+                  <path d="M2.5 14.5v-4h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                </svg>
+                Nueva conversación
               </button>
             </div>
           )}
@@ -1343,12 +1383,6 @@ export default function ChatbotPage() {
             </button>
           </div>
 
-          <p className="text-center mt-3 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-            {isRecording
-              ? "Pulsa el botón de detener para enviar tu mensaje de voz"
-              : "Enter para enviar · Shift+Enter para nueva línea · Micrófono para hablar"
-            }
-          </p>
         </div>
       </footer>
     </div>
