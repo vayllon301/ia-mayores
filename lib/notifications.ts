@@ -17,37 +17,75 @@ export interface Reminder {
 export async function fetchUnreadNotifications(userId: string): Promise<Notification[]> {
   try {
     const res = await fetch(`/api/notifications/user/${userId}`)
-    if (!res.ok) return []
+    if (!res.ok) {
+      console.error('[notifications] fetchUnreadNotifications failed:', res.status, await res.text().catch(() => ''))
+      return []
+    }
     const data = await res.json()
     return data.notifications || []
-  } catch {
+  } catch (err) {
+    console.error('[notifications] fetchUnreadNotifications error:', err)
     return []
   }
 }
 
-export async function dismissReminder(reminderId: string): Promise<void> {
-  await fetch(`/api/reminders/${reminderId}/dismiss`, { method: 'PATCH' })
+export async function dismissReminder(reminderId: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/reminders/${reminderId}/dismiss`, { method: 'PATCH' })
+    if (!res.ok) {
+      console.error('[reminders] dismissReminder failed:', res.status, await res.text().catch(() => ''))
+      return false
+    }
+    return true
+  } catch (err) {
+    console.error('[reminders] dismissReminder error:', err)
+    return false
+  }
 }
 
-export async function snoozeReminder(reminderId: string, minutes = 10): Promise<void> {
-  await fetch(`/api/reminders/${reminderId}/snooze`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ minutes }),
-  })
+export async function snoozeReminder(reminderId: string, minutes = 10): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/reminders/${reminderId}/snooze`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ minutes }),
+    })
+    if (!res.ok) {
+      console.error('[reminders] snoozeReminder failed:', res.status, await res.text().catch(() => ''))
+      return false
+    }
+    return true
+  } catch (err) {
+    console.error('[reminders] snoozeReminder error:', err)
+    return false
+  }
 }
 
-export async function markNotificationRead(notificationId: string): Promise<void> {
-  await fetch(`/api/notifications/${notificationId}/read`, { method: 'PATCH' })
+export async function markNotificationRead(notificationId: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/notifications/${notificationId}/read`, { method: 'PATCH' })
+    if (!res.ok) {
+      console.error('[notifications] markNotificationRead failed:', res.status, await res.text().catch(() => ''))
+      return false
+    }
+    return true
+  } catch (err) {
+    console.error('[notifications] markNotificationRead error:', err)
+    return false
+  }
 }
 
 export async function fetchReminders(userId: string): Promise<Reminder[]> {
   try {
     const res = await fetch(`/api/reminders/user/${userId}`)
-    if (!res.ok) return []
+    if (!res.ok) {
+      console.error('[reminders] fetchReminders failed:', res.status, await res.text().catch(() => ''))
+      return []
+    }
     const data = await res.json()
     return data.reminders || []
-  } catch {
+  } catch (err) {
+    console.error('[reminders] fetchReminders error:', err)
     return []
   }
 }
@@ -70,10 +108,14 @@ export async function createReminder(
         created_by: 'user',
       }),
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      console.error('[reminders] createReminder failed:', res.status, await res.text().catch(() => ''))
+      return null
+    }
     const data = await res.json()
     return data.reminder || null
-  } catch {
+  } catch (err) {
+    console.error('[reminders] createReminder error:', err)
     return null
   }
 }

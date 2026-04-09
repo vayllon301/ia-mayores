@@ -63,6 +63,20 @@ function formatTime(date: Date): string {
   return date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" });
 }
 
+function madridTimeToISO(dateStr: string, timeStr: string): string {
+  const asUTC = new Date(`${dateStr}T${timeStr}:00Z`);
+  const madridParts = new Intl.DateTimeFormat("en", {
+    timeZone: "Europe/Madrid",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(asUTC);
+  const v = (type: string) => parseInt(madridParts.find((p) => p.type === type)!.value);
+  const madridAtUTC = Date.UTC(v("year"), v("month") - 1, v("day"), v("hour"), v("minute"), 0);
+  const offsetMs = madridAtUTC - asUTC.getTime();
+  return new Date(asUTC.getTime() - offsetMs).toISOString();
+}
+
 const SUGGESTIONS = [
   { text: "¿Qué tiempo hace hoy?", icon: "sun" },
   { text: "Cuéntame un dato curioso", icon: "bulb" },
@@ -146,6 +160,7 @@ export default function ChatbotPage() {
   const [newReminderDate, setNewReminderDate] = useState("");
   const [newReminderTime, setNewReminderTime] = useState("");
   const [creatingReminder, setCreatingReminder] = useState(false);
+  const [reminderError, setReminderError] = useState("");
   const prevNotifIdsRef = useRef<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -154,7 +169,6 @@ export default function ChatbotPage() {
   messagesRef.current = messages;
   const sessionCountRef = useRef(sessionUserMessageCount);
   sessionCountRef.current = sessionUserMessageCount;
-  const userLocationRef = useRef<{ latitude: number; longitude: number } | null>(null);
   const MAX_TEXTAREA_HEIGHT = 140;
   const userEmail = user?.email ?? null;
 
@@ -229,31 +243,17 @@ export default function ChatbotPage() {
   }, [user?.id, loadReminders]);
 
   useEffect(() => {
-    if (!("geolocation" in navigator)) {
-      console.warn("[MenteViva] Geolocation API not available in this browser");
-      return;
-    }
+    if (!("geolocation" in navigator)) return;
 
-    console.log("[MenteViva] Requesting GPS location...");
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const coords = {
+        setUserLocation({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-        };
-        console.log("[MenteViva] GPS location obtained:", coords);
-        userLocationRef.current = coords;
-        setUserLocation(coords);
+        });
       },
-      (error) => {
-        console.warn("[MenteViva] GPS location failed, will use profile city as fallback:", error.message);
-        userLocationRef.current = null;
+      () => {
         setUserLocation(null);
-      },
-      {
-        enableHighAccuracy: false,
-        timeout: 10000,
-        maximumAge: 300000,
       }
     );
   }, []);
@@ -261,13 +261,16 @@ export default function ChatbotPage() {
   const handleCreateReminder = async () => {
     if (!user?.id || !newReminderMessage.trim() || !newReminderDate || !newReminderTime) return;
     setCreatingReminder(true);
-    const remindAt = new Date(`${newReminderDate}T${newReminderTime}`).toISOString();
+    setReminderError("");
+    const remindAt = madridTimeToISO(newReminderDate, newReminderTime);
     const result = await createReminder(user.id, newReminderMessage.trim(), remindAt);
     if (result) {
       setNewReminderMessage("");
       setNewReminderDate("");
       setNewReminderTime("");
       await loadReminders();
+    } else {
+      setReminderError("No se pudo crear el recordatorio. Inténtalo de nuevo.");
     }
     setCreatingReminder(false);
   };
@@ -354,29 +357,24 @@ export default function ChatbotPage() {
     }
   };
 
-  const buildChatPayload = (text: string) => {
-    // Use ref for GPS coords — it updates synchronously and avoids the
-    // race condition where React state hasn't re-rendered yet.
-    const loc = userLocationRef.current ?? userLocation;
-    return {
-      message: text,
-      history: messages.map((m) => ({ role: m.role, content: m.content })),
-      user_id: user?.id || null,
-      user_profile: profile ? {
-        name: profile.name, number: profile.number,
-        description: profile.description, interests: profile.interests, city: profile.city,
-      } : null,
-      tutor_profile: tutorProfile ? {
-        name: tutorProfile.name, number: tutorProfile.number,
-        description: tutorProfile.description, instagram: tutorProfile.instagram,
-        facebook: tutorProfile.facebook, relationship: tutorProfile.relationship,
-        factors: tutorProfile.factors,
-      } : null,
-      user_memory: userMemory ? { facts: userMemory.facts, narrative: userMemory.narrative } : null,
-      latitude: loc?.latitude ?? null,
-      longitude: loc?.longitude ?? null,
-    };
-  };
+  const buildChatPayload = (text: string) => ({
+    message: text,
+    history: messages.map((m) => ({ role: m.role, content: m.content })),
+    user_id: user?.id || null,
+    user_profile: profile ? {
+      name: profile.name, number: profile.number,
+      description: profile.description, interests: profile.interests, city: profile.city,
+    } : null,
+    tutor_profile: tutorProfile ? {
+      name: tutorProfile.name, number: tutorProfile.number,
+      description: tutorProfile.description, instagram: tutorProfile.instagram,
+      facebook: tutorProfile.facebook, relationship: tutorProfile.relationship,
+      factors: tutorProfile.factors,
+    } : null,
+    user_memory: userMemory ? { facts: userMemory.facts, narrative: userMemory.narrative } : null,
+    latitude: userLocation?.latitude ?? null,
+    longitude: userLocation?.longitude ?? null,
+  });
 
   const readSSEStream = async (
     response: Response,
@@ -823,6 +821,11 @@ export default function ChatbotPage() {
               >
                 {creatingReminder ? "Creando..." : "Crear recordatorio"}
               </button>
+              {reminderError && (
+                <p className="text-sm mt-2 text-center" style={{ color: '#c53030' }}>
+                  {reminderError}
+                </p>
+              )}
             </div>
 
             {/* Reminders list */}
@@ -986,7 +989,7 @@ export default function ChatbotPage() {
 
             {/* Reminders button */}
             <button
-              onClick={() => { setShowReminders(!showReminders); if (!showReminders) loadReminders(); }}
+              onClick={() => { setShowReminders(!showReminders); if (!showReminders) { setReminderError(""); loadReminders(); } }}
               className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-200"
               style={{
                 color: showReminders ? 'var(--color-primary)' : 'var(--color-text-secondary)',
