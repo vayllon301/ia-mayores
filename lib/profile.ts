@@ -14,7 +14,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     .from('user_profile')
     .select('*')
     .eq('id', userId)
-    .single()
+    .maybeSingle()
 
   if (error || !data) return null
   return data as UserProfile
@@ -25,7 +25,7 @@ export async function hasProfile(userId: string): Promise<boolean> {
     .from('user_profile')
     .select('id')
     .eq('id', userId)
-    .single()
+    .maybeSingle()
 
   return !error && !!data
 }
@@ -46,7 +46,7 @@ export async function getTutorProfile(userId: string): Promise<TutorProfile | nu
     .from('tutor_profile')
     .select('*')
     .eq('id', userId)
-    .single()
+    .maybeSingle()
 
   if (error || !data) return null
   return data as TutorProfile
@@ -57,7 +57,7 @@ export async function hasTutorProfile(userId: string): Promise<boolean> {
     .from('tutor_profile')
     .select('id')
     .eq('id', userId)
-    .single()
+    .maybeSingle()
 
   return !error && !!data
 }

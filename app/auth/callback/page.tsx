@@ -17,7 +17,7 @@ function CallbackContent() {
 
   // #region agent log
   useEffect(() => {
-    fetch('http://127.0.0.1:7242/ingest/b1453c99-1cbf-43e3-aaf7-2380e5862220',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'callback/page.tsx:18',message:'CallbackContent mounted',data:{next},timestamp:Date.now(),sessionId:'debug-session',runId:'build-debug',hypothesisId:'A'})}).catch(()=>{});
+    // Debug logging removed
   }, [next]);
   // #endregion
 
@@ -29,13 +29,11 @@ function CallbackContent() {
       try {
         // #region agent log
         const isBrowser = typeof window !== 'undefined';
-        fetch('http://127.0.0.1:7242/ingest/b1453c99-1cbf-43e3-aaf7-2380e5862220',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'callback/page.tsx:22',message:'handleAuthCallback entry',data:{isBrowser,hasWindow:isBrowser},timestamp:Date.now(),sessionId:'debug-session',runId:'build-debug',hypothesisId:'B'})}).catch(()=>{});
         // #endregion
         
         // Verificar si hay un error en el hash
         if (!isBrowser) {
           // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/b1453c99-1cbf-43e3-aaf7-2380e5862220',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'callback/page.tsx:26',message:'Not in browser, skipping hash check',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'build-debug',hypothesisId:'B'})}).catch(()=>{});
           // #endregion
           return;
         }
@@ -45,7 +43,6 @@ function CallbackContent() {
         const errorDescription = hashParams.get("error_description");
         
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/b1453c99-1cbf-43e3-aaf7-2380e5862220',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'callback/page.tsx:32',message:'Hash params parsed',data:{hasError:!!errorParam,errorParam},timestamp:Date.now(),sessionId:'debug-session',runId:'build-debug',hypothesisId:'B'})}).catch(()=>{});
         // #endregion
 
         if (errorParam) {
