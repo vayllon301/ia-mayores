@@ -62,6 +62,38 @@ export async function hasTutorProfile(userId: string): Promise<boolean> {
   return !error && !!data
 }
 
+export interface FriendProfile {
+  id: string
+  name: string
+  number: string | null
+  description: string | null
+  instagram: string | null
+  facebook: string | null
+  relationship: string | null
+  factors: string | null
+}
+
+export async function getFriendProfile(userId: string): Promise<FriendProfile | null> {
+  const { data, error } = await supabase
+    .from('friend_profile')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (error || !data) return null
+  return data as FriendProfile
+}
+
+export async function hasFriendProfile(userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('friend_profile')
+    .select('id')
+    .eq('id', userId)
+    .maybeSingle()
+
+  return !error && !!data
+}
+
 export interface UserMemoryFact {
   text: string
   category: 'hard' | 'soft'

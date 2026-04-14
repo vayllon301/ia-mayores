@@ -254,7 +254,8 @@ export default function ChatbotPage() {
       },
       () => {
         setUserLocation(null);
-      }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
   }, []);
 
@@ -351,17 +352,60 @@ export default function ChatbotPage() {
     inputRef.current?.focus();
   };
 
+  const getFreshLocation = (): Promise<{
+    latitude: number;
+    longitude: number;
+  } | null> => {
+    return new Promise((resolve) => {
+      if (!("geolocation" in navigator)) {
+        resolve(userLocation);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const fresh = {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          };
+          setUserLocation(fresh);
+          resolve(fresh);
+        },
+        () => resolve(userLocation),
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+      );
+    });
+  };
+
   const handleAlert = async () => {
     if (alertStatus === "sending") return;
+
+    // Tutor phone number required for SMS
+    if (!tutorProfile?.number) {
+      console.error("No hay número de tutor configurado para enviar la alerta");
+      setAlertStatus("error");
+      setTimeout(() => setAlertStatus("idle"), 4000);
+      return;
+    }
+
     setAlertStatus("sending");
+
+    // Fresh GPS at alert time (falls back to cached location on failure)
+    const freshLocation = await getFreshLocation();
+
+    // Button-triggered alert: fixed description so the tutor knows it
+    // came from the panic button, not from a conversation.
+    const description = "Botón de alerta presionado";
+
     try {
       const response = await fetch("/api/alert", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          to: tutorProfile?.number || undefined,
-          user: userEmail,
-          timestamp: new Date().toISOString(),
+          to: tutorProfile.number,
+          user_name: profile?.name || userEmail || undefined,
+          latitude: freshLocation?.latitude ?? undefined,
+          longitude: freshLocation?.longitude ?? undefined,
+          description,
         }),
       });
       if (!response.ok) throw new Error(`Error ${response.status}`);
@@ -1130,13 +1174,13 @@ export default function ChatbotPage() {
               </p>
 
               {/* Suggestion chips */}
-              <div className="flex flex-wrap justify-center gap-3 max-w-lg mx-auto">
+              <div className="flex flex-wrap justify-center gap-4 max-w-2xl mx-auto">
                 {SUGGESTIONS.map((suggestion, i) => (
                   <button
                     key={i}
                     onClick={() => handleSend(suggestion.text)}
                     disabled={isLoading}
-                    className="flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-medium transition-all duration-200"
+                    className="flex items-center gap-3 px-6 py-[18px] rounded-2xl text-xl font-medium transition-all duration-200"
                     style={{
                       background: 'var(--color-bg-card)',
                       color: 'var(--color-text-primary)',

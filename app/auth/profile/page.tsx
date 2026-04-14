@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { getUserProfile, getTutorProfile } from "@/lib/profile";
+import { getUserProfile, getTutorProfile, getFriendProfile } from "@/lib/profile";
+import { createReminder, fetchReminders, dismissReminder, type Reminder } from "@/lib/notifications";
 
 function LogoIcon({ className = "w-10 h-10" }: { className?: string }) {
   return (
@@ -43,7 +44,7 @@ function ProfileContent() {
   const [hasExistingProfile, setHasExistingProfile] = useState(false);
 
   // Profile mode toggle
-  const [profileMode, setProfileMode] = useState<"user" | "tutor">("user");
+  const [profileMode, setProfileMode] = useState<"user" | "tutor" | "friend">("user");
 
   // Tutor profile fields
   const [tutorName, setTutorName] = useState("");
@@ -54,6 +55,27 @@ function ProfileContent() {
   const [tutorRelationship, setTutorRelationship] = useState("");
   const [tutorFactors, setTutorFactors] = useState("");
   const [hasExistingTutorProfile, setHasExistingTutorProfile] = useState(false);
+
+  // Friend profile fields
+  const [friendName, setFriendName] = useState("");
+  const [friendNumber, setFriendNumber] = useState("");
+  const [friendDescription, setFriendDescription] = useState("");
+  const [friendInstagram, setFriendInstagram] = useState("");
+  const [friendFacebook, setFriendFacebook] = useState("");
+  const [friendRelationship, setFriendRelationship] = useState("");
+  const [friendFactors, setFriendFactors] = useState("");
+  const [hasExistingFriendProfile, setHasExistingFriendProfile] = useState(false);
+
+  // Reminder creation state
+  const [reminderMessage, setReminderMessage] = useState("");
+  const [reminderDate, setReminderDate] = useState("");
+  const [reminderTime, setReminderTime] = useState("");
+  const [reminderRecurrence, setReminderRecurrence] = useState("");
+  const [reminderLoading, setReminderLoading] = useState(false);
+  const [reminderSuccess, setReminderSuccess] = useState("");
+  const [reminderError, setReminderError] = useState("");
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [remindersLoading, setRemindersLoading] = useState(false);
 
   // Instagram linking state
   const [igLinkMode, setIgLinkMode] = useState(false);
@@ -133,6 +155,46 @@ function ProfileContent() {
     setIgError("");
   };
 
+  const handleCreateReminder = async () => {
+    if (!reminderMessage.trim()) {
+      setReminderError("Escribe un mensaje para el recordatorio.");
+      return;
+    }
+    if (!reminderDate || !reminderTime) {
+      setReminderError("Selecciona fecha y hora.");
+      return;
+    }
+    if (!user) return;
+
+    setReminderLoading(true);
+    setReminderError("");
+    setReminderSuccess("");
+
+    const remindAt = new Date(`${reminderDate}T${reminderTime}`).toISOString();
+    const createdBy = profileMode as "tutor" | "friend";
+    const result = await createReminder(user.id, reminderMessage.trim(), remindAt, reminderRecurrence || undefined, createdBy);
+
+    if (result) {
+      setReminderSuccess("Recordatorio creado correctamente.");
+      setReminderMessage("");
+      setReminderDate("");
+      setReminderTime("");
+      setReminderRecurrence("");
+      setReminders((prev) => [...prev, result]);
+      setTimeout(() => setReminderSuccess(""), 3000);
+    } else {
+      setReminderError("No se pudo crear el recordatorio.");
+    }
+    setReminderLoading(false);
+  };
+
+  const handleDismissReminder = async (reminderId: string) => {
+    const ok = await dismissReminder(reminderId);
+    if (ok) {
+      setReminders((prev) => prev.filter((r) => r.id !== reminderId));
+    }
+  };
+
   // Auth guard + profile check
   useEffect(() => {
     if (authLoading) return;
@@ -174,6 +236,26 @@ function ProfileContent() {
         setTutorFactors(tutorProfile.factors || "");
         setHasExistingTutorProfile(true);
       }
+    });
+
+    getFriendProfile(user.id).then((friendProfile) => {
+      if (friendProfile) {
+        setFriendName(friendProfile.name);
+        setFriendNumber(friendProfile.number || "");
+        setFriendDescription(friendProfile.description || "");
+        setFriendInstagram(friendProfile.instagram || "");
+        setFriendFacebook(friendProfile.facebook || "");
+        setFriendRelationship(friendProfile.relationship || "");
+        setFriendFactors(friendProfile.factors || "");
+        setHasExistingFriendProfile(true);
+      }
+    });
+
+    // Load existing reminders
+    setRemindersLoading(true);
+    fetchReminders(user.id).then((r) => {
+      setReminders(r);
+      setRemindersLoading(false);
     });
   }, [user, authLoading, router, isEditMode]);
 
@@ -227,6 +309,44 @@ function ProfileContent() {
           const { error: insertError } = await supabase
             .from("tutor_profile")
             .insert(tutorData);
+          dbError = insertError;
+        }
+      } else if (profileMode === "friend") {
+        if (!friendName.trim()) {
+          setError("Por favor, escribe el nombre del amigo/a.");
+          setLoading(false);
+          return;
+        }
+
+        const friendData = {
+          id: user.id,
+          name: friendName.trim(),
+          number: friendNumber.trim() || null,
+          description: friendDescription.trim() || null,
+          instagram: friendInstagram.trim() || null,
+          facebook: friendFacebook.trim() || null,
+          relationship: friendRelationship.trim() || null,
+          factors: friendFactors.trim() || null,
+        };
+
+        if (hasExistingFriendProfile) {
+          const { error: updateError } = await supabase
+            .from("friend_profile")
+            .update({
+              name: friendData.name,
+              number: friendData.number,
+              description: friendData.description,
+              instagram: friendData.instagram,
+              facebook: friendData.facebook,
+              relationship: friendData.relationship,
+              factors: friendData.factors,
+            })
+            .eq("id", user.id);
+          dbError = updateError;
+        } else {
+          const { error: insertError } = await supabase
+            .from("friend_profile")
+            .insert(friendData);
           dbError = insertError;
         }
       } else {
@@ -381,6 +501,17 @@ function ProfileContent() {
               >
                 Tutor
               </button>
+              <button
+                type="button"
+                onClick={() => setProfileMode("friend")}
+                className="flex-1 py-3 text-sm font-semibold transition-all duration-200"
+                style={{
+                  background: profileMode === "friend" ? 'var(--color-primary)' : 'transparent',
+                  color: profileMode === "friend" ? 'white' : 'var(--color-text-secondary)',
+                }}
+              >
+                Amigo
+              </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -399,7 +530,56 @@ function ProfileContent() {
                 </div>
               )}
 
-              {profileMode === "tutor" ? (
+              {profileMode === "friend" ? (
+                <>
+                  <div>
+                    <label htmlFor="friendName" className="label">Nombre del amigo/a *</label>
+                    <input id="friendName" type="text" value={friendName} onChange={(e) => setFriendName(e.target.value)} className="input" placeholder="Nombre del amigo/a" required autoComplete="name" autoFocus />
+                  </div>
+                  <div>
+                    <label htmlFor="friendNumber" className="label">Teléfono</label>
+                    <input id="friendNumber" type="tel" value={friendNumber} onChange={(e) => setFriendNumber(e.target.value)} className="input" placeholder="Ej: 612 345 678" autoComplete="tel" />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label htmlFor="friendDescription" className="label" style={{ marginBottom: 0 }}>Descripción</label>
+                      <button type="button" onClick={() => startVoiceInput("friendDescription", setFriendDescription, friendDescription)} aria-label={isRecording && recordingTarget === "friendDescription" ? "Detener grabación" : "Dictar descripción"} className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg transition-all" style={{ color: isRecording && recordingTarget === "friendDescription" ? 'white' : 'var(--color-primary)', background: isRecording && recordingTarget === "friendDescription" ? 'var(--color-primary)' : 'var(--color-bg-secondary)', border: '1px solid var(--color-primary)' }}>
+                        {isRecording && recordingTarget === "friendDescription" ? (
+                          <><span className="w-2 h-2 rounded-full bg-white animate-pulse inline-block" />Grabando...</>
+                        ) : (
+                          <><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="13" rx="3" fill="currentColor"/><path d="M5 10a7 7 0 0014 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="12" y1="19" x2="12" y2="23" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>Dictar</>
+                        )}
+                      </button>
+                    </div>
+                    <textarea id="friendDescription" value={friendDescription} onChange={(e) => setFriendDescription(e.target.value)} className="input" placeholder="Información sobre el amigo/a..." rows={3} style={{ resize: 'vertical', minHeight: '80px' }} />
+                  </div>
+                  <div>
+                    <label htmlFor="friendRelationship" className="label">Relación con el usuario</label>
+                    <input id="friendRelationship" type="text" value={friendRelationship} onChange={(e) => setFriendRelationship(e.target.value)} className="input" placeholder="Ej: Amigo/a, vecino/a, compañero/a..." />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label htmlFor="friendFactors" className="label" style={{ marginBottom: 0 }}>Factores a tener en cuenta</label>
+                      <button type="button" onClick={() => startVoiceInput("friendFactors", setFriendFactors, friendFactors)} aria-label={isRecording && recordingTarget === "friendFactors" ? "Detener grabación" : "Dictar factores"} className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg transition-all" style={{ color: isRecording && recordingTarget === "friendFactors" ? 'white' : 'var(--color-primary)', background: isRecording && recordingTarget === "friendFactors" ? 'var(--color-primary)' : 'var(--color-bg-secondary)', border: '1px solid var(--color-primary)' }}>
+                        {isRecording && recordingTarget === "friendFactors" ? (
+                          <><span className="w-2 h-2 rounded-full bg-white animate-pulse inline-block" />Grabando...</>
+                        ) : (
+                          <><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="13" rx="3" fill="currentColor"/><path d="M5 10a7 7 0 0014 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="12" y1="19" x2="12" y2="23" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>Dictar</>
+                        )}
+                      </button>
+                    </div>
+                    <textarea id="friendFactors" value={friendFactors} onChange={(e) => setFriendFactors(e.target.value)} className="input" placeholder="Ej: Intereses compartidos, actividades juntos..." rows={3} style={{ resize: 'vertical', minHeight: '80px' }} />
+                  </div>
+                  <div>
+                    <label htmlFor="friendInstagram" className="label">Instagram</label>
+                    <input id="friendInstagram" type="text" value={friendInstagram} onChange={(e) => setFriendInstagram(e.target.value)} className="input" placeholder="@usuario" />
+                  </div>
+                  <div>
+                    <label htmlFor="friendFacebook" className="label">Facebook</label>
+                    <input id="friendFacebook" type="text" value={friendFacebook} onChange={(e) => setFriendFacebook(e.target.value)} className="input" placeholder="Enlace o nombre de perfil" />
+                  </div>
+                </>
+              ) : profileMode === "tutor" ? (
                 <>
                   <div>
                     <label htmlFor="tutorName" className="label">Nombre del tutor *</label>
@@ -585,6 +765,130 @@ function ProfileContent() {
               </div>
             )}
           </div>
+
+          {/* Reminders section — only for tutor/friend */}
+          {(profileMode === "tutor" || profileMode === "friend") && (
+            <div className="card mt-6" style={{ padding: '2rem' }}>
+              <h2 className="text-lg font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>
+                Recordatorios para el usuario
+              </h2>
+
+              {/* Existing reminders */}
+              {remindersLoading ? (
+                <p className="text-sm mb-4" style={{ color: 'var(--color-text-muted)' }}>Cargando recordatorios...</p>
+              ) : reminders.length > 0 ? (
+                <div className="space-y-2 mb-5">
+                  {reminders.map((r) => (
+                    <div key={r.id} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="shrink-0 mt-0.5" style={{ color: 'var(--color-primary)' }}>
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none"/>
+                        <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{r.message}</p>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                          {new Date(r.remind_at).toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short" })}
+                          {r.recurrence && ` · ${r.recurrence}`}
+                          {r.created_by && <span className="ml-1 opacity-60">({r.created_by})</span>}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDismissReminder(r.id)}
+                        className="text-xs font-medium px-2 py-1 rounded-lg shrink-0"
+                        style={{ color: 'var(--color-error)', background: '#fef2f2', border: '1px solid #fecaca' }}
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm mb-5" style={{ color: 'var(--color-text-muted)' }}>No hay recordatorios activos.</p>
+              )}
+
+              {/* New reminder form */}
+              <div className="space-y-4" style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.25rem' }}>
+                <p className="text-sm font-semibold" style={{ color: 'var(--color-text-secondary)' }}>Crear nuevo recordatorio</p>
+
+                {reminderError && (
+                  <p className="text-xs font-medium" style={{ color: 'var(--color-error)' }}>{reminderError}</p>
+                )}
+                {reminderSuccess && (
+                  <p className="text-xs font-medium" style={{ color: 'var(--color-success, #16a34a)' }}>{reminderSuccess}</p>
+                )}
+
+                <div>
+                  <label htmlFor="reminderMessage" className="label">Mensaje *</label>
+                  <input
+                    id="reminderMessage"
+                    type="text"
+                    value={reminderMessage}
+                    onChange={(e) => setReminderMessage(e.target.value)}
+                    className="input"
+                    placeholder="Ej: Tomar la medicación, Llamar al médico..."
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <label htmlFor="reminderDate" className="label">Fecha *</label>
+                    <input
+                      id="reminderDate"
+                      type="date"
+                      value={reminderDate}
+                      onChange={(e) => setReminderDate(e.target.value)}
+                      className="input"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label htmlFor="reminderTime" className="label">Hora *</label>
+                    <input
+                      id="reminderTime"
+                      type="time"
+                      value={reminderTime}
+                      onChange={(e) => setReminderTime(e.target.value)}
+                      className="input"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="reminderRecurrence" className="label">Repetir</label>
+                  <select
+                    id="reminderRecurrence"
+                    value={reminderRecurrence}
+                    onChange={(e) => setReminderRecurrence(e.target.value)}
+                    className="input"
+                  >
+                    <option value="">Sin repetición</option>
+                    <option value="daily">Cada día</option>
+                    <option value="weekly">Cada semana</option>
+                    <option value="monthly">Cada mes</option>
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleCreateReminder}
+                  disabled={reminderLoading}
+                  className="btn btn-primary w-full"
+                >
+                  {reminderLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.3" fill="none"/>
+                        <path d="M12 2a10 10 0 019.5 6.8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" fill="none"/>
+                      </svg>
+                      Creando...
+                    </span>
+                  ) : (
+                    "Crear recordatorio"
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

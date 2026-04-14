@@ -95,6 +95,7 @@ export async function createReminder(
   message: string,
   remindAt: string,
   recurrence?: string,
+  createdBy: 'user' | 'tutor' | 'friend' = 'user',
 ): Promise<Reminder | null> {
   try {
     const res = await fetch('/api/reminders', {
@@ -105,7 +106,7 @@ export async function createReminder(
         message,
         remind_at: remindAt,
         recurrence: recurrence || null,
-        created_by: 'user',
+        created_by: createdBy,
       }),
     })
     if (!res.ok) {
